@@ -11,6 +11,13 @@ if (!isset($_SESSION['user_id'])) {
 $database = new Database();
 $db = $database->getConnection();
 
+// Check for success message from profile form
+$success_message = '';
+if (isset($_SESSION['success_message'])) {
+    $success_message = $_SESSION['success_message'];
+    unset($_SESSION['success_message']);
+}
+
 // Get statistics
 $stats = [];
 
@@ -29,14 +36,20 @@ $query = "SELECT COUNT(*) as total FROM biographical_profiles WHERE status = 'de
 $stmt = $db->query($query);
 $stats['delisted'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
 
-// Get distinct years from profiles
-$yearQuery = "SELECT DISTINCT YEAR(created_at) as year FROM biographical_profiles ORDER BY year DESC";
+// Get distinct years from arrest dates
+$yearQuery = "SELECT DISTINCT YEAR(arrest_datetime) as year 
+              FROM biographical_profiles 
+              WHERE arrest_datetime IS NOT NULL 
+              ORDER BY year DESC";
 $yearStmt = $db->query($yearQuery);
 $years = $yearStmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Get distinct months
-$monthQuery = "SELECT DISTINCT MONTH(created_at) as month, MONTHNAME(created_at) as month_name 
-               FROM biographical_profiles ORDER BY month";
+// Get distinct months from arrest dates
+$monthQuery = "SELECT DISTINCT MONTH(arrest_datetime) as month, 
+               MONTHNAME(arrest_datetime) as month_name 
+               FROM biographical_profiles 
+               WHERE arrest_datetime IS NOT NULL 
+               ORDER BY month";
 $monthStmt = $db->query($monthQuery);
 $months = $monthStmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -44,15 +57,15 @@ $months = $monthStmt->fetchAll(PDO::FETCH_ASSOC);
 $selectedYear = isset($_GET['year']) ? $_GET['year'] : '';
 $selectedMonth = isset($_GET['month']) ? $_GET['month'] : '';
 
-// Recent profiles with filter
+// Recent profiles with filter (based on arrest date)
 $recentQuery = "SELECT * FROM biographical_profiles WHERE 1=1";
 if (!empty($selectedYear)) {
-    $recentQuery .= " AND YEAR(created_at) = :year";
+    $recentQuery .= " AND YEAR(arrest_datetime) = :year";
 }
 if (!empty($selectedMonth)) {
-    $recentQuery .= " AND MONTH(created_at) = :month";
+    $recentQuery .= " AND MONTH(arrest_datetime) = :month";
 }
-$recentQuery .= " ORDER BY created_at DESC LIMIT 10";
+$recentQuery .= " ORDER BY arrest_datetime DESC LIMIT 10";
 
 $recentStmt = $db->prepare($recentQuery);
 if (!empty($selectedYear)) {
@@ -285,6 +298,20 @@ $recent_profiles = $recentStmt->fetchAll(PDO::FETCH_ASSOC);
             color: #6c757d;
             margin-top: 5px;
         }
+        
+        .no-arrest {
+            color: #999;
+            font-style: italic;
+        }
+        
+        .arrest-badge {
+            background: #dc3545;
+            color: white;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-size: 10px;
+            margin-left: 5px;
+        }
     </style>
 </head>
 <body>
@@ -305,6 +332,14 @@ $recent_profiles = $recentStmt->fetchAll(PDO::FETCH_ASSOC);
     </div>
 
     <div class="container">
+        <!-- Success Message -->
+        <?php if ($success_message): ?>
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="fas fa-check-circle"></i> <?php echo $success_message; ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        <?php endif; ?>
+        
         <div class="row">
             <div class="col-md-3">
                 <div class="sidebar">
@@ -323,12 +358,6 @@ $recent_profiles = $recentStmt->fetchAll(PDO::FETCH_ASSOC);
                         </a>
                         <a class="nav-link" href="profiles.php">
                             <i class="fas fa-list"></i> View Profiles
-                        </a>
-                        <a class="nav-link" href="archive.php">
-                            <i class="fas fa-archive"></i> Archives
-                        </a>
-                        <a class="nav-link" href="search.php">
-                            <i class="fas fa-search"></i> Search
                         </a>
                         <a class="nav-link" href="reports.php">
                             <i class="fas fa-chart-bar"></i> Reports
@@ -368,15 +397,15 @@ $recent_profiles = $recentStmt->fetchAll(PDO::FETCH_ASSOC);
                     </div>
                 </div>
                 
-                <!-- Filter Section -->
+                <!-- Filter Section (based on arrest date) -->
                 <div class="filter-card">
                     <div class="filter-title">
-                        <i class="fas fa-filter"></i> Filter Profiles by Date
+                        <i class="fas fa-filter"></i> Filter by Arrest Date
                     </div>
                     
                     <form method="GET" action="" class="row g-3">
                         <div class="col-md-4">
-                            <label class="form-label"><i class="fas fa-calendar"></i> Select Year</label>
+                            <label class="form-label"><i class="fas fa-calendar"></i> Arrest Year</label>
                             <select name="year" class="form-select">
                                 <option value="">All Years</option>
                                 <?php foreach ($years as $year): ?>
@@ -388,7 +417,7 @@ $recent_profiles = $recentStmt->fetchAll(PDO::FETCH_ASSOC);
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label"><i class="fas fa-calendar-alt"></i> Select Month</label>
+                            <label class="form-label"><i class="fas fa-calendar-alt"></i> Arrest Month</label>
                             <select name="month" class="form-select">
                                 <option value="">All Months</option>
                                 <?php foreach ($months as $month): ?>
@@ -414,7 +443,7 @@ $recent_profiles = $recentStmt->fetchAll(PDO::FETCH_ASSOC);
                     <div class="active-filter mt-3">
                         <i class="fas fa-info-circle"></i>
                         <strong>Active Filter:</strong> 
-                        Showing profiles from 
+                        Showing arrests from 
                         <?php 
                         if (!empty($selectedMonth) && !empty($selectedYear)) {
                             $monthName = date('F', mktime(0, 0, 0, $selectedMonth, 1));
@@ -427,7 +456,7 @@ $recent_profiles = $recentStmt->fetchAll(PDO::FETCH_ASSOC);
                         }
                         ?>
                         <span class="info-text float-end">
-                            Total: <?php echo count($recent_profiles); ?> profiles
+                            Total: <?php echo count($recent_profiles); ?> arrests
                         </span>
                     </div>
                     <?php endif; ?>
@@ -439,9 +468,9 @@ $recent_profiles = $recentStmt->fetchAll(PDO::FETCH_ASSOC);
                             <i class="fas fa-clock me-2"></i>
                             <?php 
                             if (!empty($selectedYear) || !empty($selectedMonth)) {
-                                echo "Filtered Profiles";
+                                echo "Arrest Records";
                             } else {
-                                echo "Recent Profiles";
+                                echo "Recent Arrests";
                             }
                             ?>
                         </h5>
@@ -458,7 +487,7 @@ $recent_profiles = $recentStmt->fetchAll(PDO::FETCH_ASSOC);
                                 <th>Alias</th>
                                 <th>Age</th>
                                 <th>Status</th>
-                                <th>Date Created</th>
+                                <th>Arrest Date</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -473,7 +502,16 @@ $recent_profiles = $recentStmt->fetchAll(PDO::FETCH_ASSOC);
                                         <?php echo ucfirst($profile['status']); ?>
                                     </span>
                                 </td>
-                                <td><?php echo date('Y-m-d', strtotime($profile['created_at'])); ?></td>
+                                <td>
+                                    <?php 
+                                    if (!empty($profile['arrest_datetime'])) {
+                                        echo date('Y-m-d', strtotime($profile['arrest_datetime']));
+                                        echo ' <span class="arrest-badge"><i class="fas fa-clock"></i> ' . date('H:i', strtotime($profile['arrest_datetime'])) . '</span>';
+                                    } else {
+                                        echo '<span class="no-arrest">No arrest record</span>';
+                                    }
+                                    ?>
+                                </td>
                                 <td class="action-buttons">
                                     <a href="view_profile.php?id=<?php echo $profile['id']; ?>" class="btn btn-sm btn-info" title="View">
                                         <i class="fas fa-eye"></i>
@@ -489,8 +527,8 @@ $recent_profiles = $recentStmt->fetchAll(PDO::FETCH_ASSOC);
                     <?php else: ?>
                     <div class="text-center py-4">
                         <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
-                        <p class="text-muted">No profiles found for the selected period.</p>
-                        <a href="dashboard.php" class="btn btn-sm btn-filter">View All Profiles</a>
+                        <p class="text-muted">No arrest records found for the selected period.</p>
+                        <a href="dashboard.php" class="btn btn-sm btn-filter">View All Arrests</a>
                     </div>
                     <?php endif; ?>
                 </div>
@@ -498,16 +536,8 @@ $recent_profiles = $recentStmt->fetchAll(PDO::FETCH_ASSOC);
         </div>
     </div>
     
-    <div class="footer">
-        <div class="container">
-            <small>Department of the Interior and Local Government | PHILIPPINE NATIONAL POLICE<br>
-            BUKIDNON POLICE PROVINCIAL OFFICE | MANOLO FORTICH POLICE STATION<br>
-            All data is confidential and for official use only.</small>
-        </div>
-    </div>
-    
     <script>
-        // Auto-submit form when dropdown changes (optional)
+        // Auto-submit form when dropdown changes
         document.querySelector('select[name="year"]').addEventListener('change', function() {
             this.form.submit();
         });

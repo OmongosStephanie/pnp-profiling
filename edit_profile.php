@@ -603,13 +603,6 @@ function isDrugPushed($drug, $drugsPushedArray) {
                                     </td>
                                 </tr>
                                 <tr>
-                                    <th>Height (cm):</th>
-                                    <td>
-                                        <input type="number" step="0.01" class="form-control" name="height_cm"
-                                               value="<?php echo $profile['height_cm']; ?>">
-                                    </td>
-                                </tr>
-                                <tr>
                                     <th>Height (ft/in):</th>
                                     <td>
                                         <input type="text" class="form-control" name="height_ft" placeholder="e.g., 5'5&quot;"
