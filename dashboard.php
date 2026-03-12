@@ -29,10 +29,40 @@ $query = "SELECT COUNT(*) as total FROM biographical_profiles WHERE status = 'de
 $stmt = $db->query($query);
 $stats['delisted'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
 
-// Recent profiles
-$query = "SELECT * FROM biographical_profiles ORDER BY created_at DESC LIMIT 5";
-$stmt = $db->query($query);
-$recent_profiles = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// Get distinct years from profiles
+$yearQuery = "SELECT DISTINCT YEAR(created_at) as year FROM biographical_profiles ORDER BY year DESC";
+$yearStmt = $db->query($yearQuery);
+$years = $yearStmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Get distinct months
+$monthQuery = "SELECT DISTINCT MONTH(created_at) as month, MONTHNAME(created_at) as month_name 
+               FROM biographical_profiles ORDER BY month";
+$monthStmt = $db->query($monthQuery);
+$months = $monthStmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Get filter values from URL
+$selectedYear = isset($_GET['year']) ? $_GET['year'] : '';
+$selectedMonth = isset($_GET['month']) ? $_GET['month'] : '';
+
+// Recent profiles with filter
+$recentQuery = "SELECT * FROM biographical_profiles WHERE 1=1";
+if (!empty($selectedYear)) {
+    $recentQuery .= " AND YEAR(created_at) = :year";
+}
+if (!empty($selectedMonth)) {
+    $recentQuery .= " AND MONTH(created_at) = :month";
+}
+$recentQuery .= " ORDER BY created_at DESC LIMIT 10";
+
+$recentStmt = $db->prepare($recentQuery);
+if (!empty($selectedYear)) {
+    $recentStmt->bindParam(':year', $selectedYear);
+}
+if (!empty($selectedMonth)) {
+    $recentStmt->bindParam(':month', $selectedMonth);
+}
+$recentStmt->execute();
+$recent_profiles = $recentStmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -115,6 +145,82 @@ $recent_profiles = $stmt->fetchAll(PDO::FETCH_ASSOC);
             text-transform: uppercase;
         }
         
+        /* Filter Section Styles */
+        .filter-card {
+            background: white;
+            border-radius: 5px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .filter-title {
+            color: #0a2f4d;
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #c9a959;
+        }
+        
+        .filter-title i {
+            margin-right: 10px;
+            color: #c9a959;
+        }
+        
+        .form-select, .form-control {
+            border: 1px solid #ced4da;
+            border-radius: 3px;
+            padding: 8px 12px;
+        }
+        
+        .form-select:focus, .form-control:focus {
+            border-color: #0a2f4d;
+            box-shadow: 0 0 0 0.2rem rgba(10,47,77,0.25);
+        }
+        
+        .btn-filter {
+            background: #0a2f4d;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 3px;
+            transition: all 0.3s;
+        }
+        
+        .btn-filter:hover {
+            background: #c9a959;
+            color: #0a2f4d;
+        }
+        
+        .btn-reset {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 3px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn-reset:hover {
+            background: #5a6268;
+            color: white;
+        }
+        
+        .active-filter {
+            background: #e8f4fd;
+            border-left: 4px solid #0a2f4d;
+            padding: 10px 15px;
+            margin-bottom: 15px;
+            border-radius: 3px;
+        }
+        
+        .active-filter i {
+            color: #0a2f4d;
+            margin-right: 5px;
+        }
+        
         .table-container {
             background: white;
             border-radius: 5px;
@@ -151,6 +257,19 @@ $recent_profiles = $stmt->fetchAll(PDO::FETCH_ASSOC);
             font-size: 12px;
         }
         
+        .badge-archived {
+            background: #ffc107;
+            color: #333;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        
+        .action-buttons .btn {
+            padding: 5px 10px;
+            margin: 0 2px;
+        }
+        
         .footer {
             background: white;
             padding: 15px 0;
@@ -159,6 +278,12 @@ $recent_profiles = $stmt->fetchAll(PDO::FETCH_ASSOC);
             font-size: 12px;
             color: #666;
             text-align: center;
+        }
+        
+        .info-text {
+            font-size: 13px;
+            color: #6c757d;
+            margin-top: 5px;
         }
     </style>
 </head>
@@ -198,6 +323,9 @@ $recent_profiles = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         </a>
                         <a class="nav-link" href="profiles.php">
                             <i class="fas fa-list"></i> View Profiles
+                        </a>
+                        <a class="nav-link" href="archive.php">
+                            <i class="fas fa-archive"></i> Archives
                         </a>
                         <a class="nav-link" href="search.php">
                             <i class="fas fa-search"></i> Search
@@ -240,14 +368,89 @@ $recent_profiles = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     </div>
                 </div>
                 
+                <!-- Filter Section -->
+                <div class="filter-card">
+                    <div class="filter-title">
+                        <i class="fas fa-filter"></i> Filter Profiles by Date
+                    </div>
+                    
+                    <form method="GET" action="" class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label"><i class="fas fa-calendar"></i> Select Year</label>
+                            <select name="year" class="form-select">
+                                <option value="">All Years</option>
+                                <?php foreach ($years as $year): ?>
+                                    <option value="<?php echo $year['year']; ?>" 
+                                        <?php echo $selectedYear == $year['year'] ? 'selected' : ''; ?>>
+                                        <?php echo $year['year']; ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label"><i class="fas fa-calendar-alt"></i> Select Month</label>
+                            <select name="month" class="form-select">
+                                <option value="">All Months</option>
+                                <?php foreach ($months as $month): ?>
+                                    <option value="<?php echo $month['month']; ?>" 
+                                        <?php echo $selectedMonth == $month['month'] ? 'selected' : ''; ?>>
+                                        <?php echo $month['month_name']; ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-filter me-2">
+                                <i class="fas fa-search"></i> Apply Filter
+                            </button>
+                            <a href="dashboard.php" class="btn btn-reset">
+                                <i class="fas fa-redo"></i> Reset
+                            </a>
+                        </div>
+                    </form>
+                    
+                    <!-- Active Filter Display -->
+                    <?php if (!empty($selectedYear) || !empty($selectedMonth)): ?>
+                    <div class="active-filter mt-3">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Active Filter:</strong> 
+                        Showing profiles from 
+                        <?php 
+                        if (!empty($selectedMonth) && !empty($selectedYear)) {
+                            $monthName = date('F', mktime(0, 0, 0, $selectedMonth, 1));
+                            echo "<span class='badge bg-primary'>$monthName $selectedYear</span>";
+                        } elseif (!empty($selectedYear)) {
+                            echo "<span class='badge bg-primary'>Year $selectedYear</span>";
+                        } elseif (!empty($selectedMonth)) {
+                            $monthName = date('F', mktime(0, 0, 0, $selectedMonth, 1));
+                            echo "<span class='badge bg-primary'>Month of $monthName</span>";
+                        }
+                        ?>
+                        <span class="info-text float-end">
+                            Total: <?php echo count($recent_profiles); ?> profiles
+                        </span>
+                    </div>
+                    <?php endif; ?>
+                </div>
+                
                 <div class="table-container">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5>Recent Profiles</h5>
+                        <h5>
+                            <i class="fas fa-clock me-2"></i>
+                            <?php 
+                            if (!empty($selectedYear) || !empty($selectedMonth)) {
+                                echo "Filtered Profiles";
+                            } else {
+                                echo "Recent Profiles";
+                            }
+                            ?>
+                        </h5>
                         <a href="profile_form.php" class="btn btn-pnp btn-sm">
                             <i class="fas fa-plus"></i> New Profile
                         </a>
                     </div>
                     
+                    <?php if (count($recent_profiles) > 0): ?>
                     <table class="table table-hover">
                         <thead>
                             <tr>
@@ -271,11 +474,11 @@ $recent_profiles = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                     </span>
                                 </td>
                                 <td><?php echo date('Y-m-d', strtotime($profile['created_at'])); ?></td>
-                                <td>
-                                    <a href="view_profile.php?id=<?php echo $profile['id']; ?>" class="btn btn-sm btn-info">
+                                <td class="action-buttons">
+                                    <a href="view_profile.php?id=<?php echo $profile['id']; ?>" class="btn btn-sm btn-info" title="View">
                                         <i class="fas fa-eye"></i>
                                     </a>
-                                    <a href="edit_profile.php?id=<?php echo $profile['id']; ?>" class="btn btn-sm btn-warning">
+                                    <a href="edit_profile.php?id=<?php echo $profile['id']; ?>" class="btn btn-sm btn-warning" title="Edit">
                                         <i class="fas fa-edit"></i>
                                     </a>
                                 </td>
@@ -283,6 +486,13 @@ $recent_profiles = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <?php endforeach; ?>
                         </tbody>
                     </table>
+                    <?php else: ?>
+                    <div class="text-center py-4">
+                        <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No profiles found for the selected period.</p>
+                        <a href="dashboard.php" class="btn btn-sm btn-filter">View All Profiles</a>
+                    </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -295,6 +505,17 @@ $recent_profiles = $stmt->fetchAll(PDO::FETCH_ASSOC);
             All data is confidential and for official use only.</small>
         </div>
     </div>
+    
+    <script>
+        // Auto-submit form when dropdown changes (optional)
+        document.querySelector('select[name="year"]').addEventListener('change', function() {
+            this.form.submit();
+        });
+        
+        document.querySelector('select[name="month"]').addEventListener('change', function() {
+            this.form.submit();
+        });
+    </script>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
