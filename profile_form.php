@@ -19,113 +19,131 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         // Begin transaction
         $db->beginTransaction();
         
-      $query = "INSERT INTO biographical_profiles (
-    full_name, alias, group_affiliation, position_roles, age, sex, dob, pob,
-    educational_attainment, occupation, company_office, technical_skills,
-    ethnic_group, languages, present_address, provincial_address,
-    civil_status, citizenship, religion, height_cm, weight_kg, height_ft,
-    eyes_color, hair_color, built, complexion, distinguishing_marks,
-    previous_arrest, specific_charge, arrest_datetime, arrest_place,
-    arresting_officer, arresting_unit, drugs_involved,
-    
-    -- NEW FIELDS
-    source_relationship, source_address, source_name, source_nickname, 
-    source_full_address, source_other_drugs, subgroup_name, specific_aor,
-    other_source_name, other_source_alias, other_source_details, 
-    drugs_pushed, other_drugs_pushed,
-    -- END NEW FIELDS
-    
-    vehicles_used, armaments, companions_arrest, recruitment_summary, 
-    modus_operandi, organizational_structure, ci_matters, other_revelations, 
-    recommendation, created_by, status
-) VALUES (
-    :full_name, :alias, :group_affiliation, :position_roles, :age, :sex, :dob, :pob,
-    :educational_attainment, :occupation, :company_office, :technical_skills,
-    :ethnic_group, :languages, :present_address, :provincial_address,
-    :civil_status, :citizenship, :religion, :height_cm, :weight_kg, :height_ft,
-    :eyes_color, :hair_color, :built, :complexion, :distinguishing_marks,
-    :previous_arrest, :specific_charge, :arrest_datetime, :arrest_place,
-    :arresting_officer, :arresting_unit, :drugs_involved,
-    
-    -- NEW FIELDS (must match order above)
-    :source_relationship, :source_address, :source_name, :source_nickname,
-    :source_full_address, :source_other_drugs, :subgroup_name, :specific_aor,
-    :other_source_name, :other_source_alias, :other_source_details,
-    :drugs_pushed, :other_drugs_pushed,
-    -- END NEW FIELDS
-    
-    :vehicles_used, :armaments, :companions_arrest, :recruitment_summary,
-    :modus_operandi, :organizational_structure, :ci_matters, :other_revelations,
-    :recommendation, :created_by, :status
-)";
+        // Process position_roles - combine multiple checkboxes
+        if (isset($_POST['position_roles']) && is_array($_POST['position_roles'])) {
+            $position_roles = implode(', ', $_POST['position_roles']);
+        } elseif (isset($_POST['position_roles_other']) && !empty($_POST['position_roles_other'])) {
+            $position_roles = $_POST['position_roles_other'];
+        } else {
+            $position_roles = '';
+        }
+        
+        // Process drug types - combine multiple checkboxes
+        if (isset($_POST['drug_types']) && is_array($_POST['drug_types'])) {
+            $drug_types = implode(', ', $_POST['drug_types']);
+        } elseif (isset($_POST['drug_types_other']) && !empty($_POST['drug_types_other'])) {
+            $drug_types = $_POST['drug_types_other'];
+        } else {
+            $drug_types = '';
+        }
+        
+        $query = "INSERT INTO biographical_profiles (
+            full_name, alias, group_affiliation, position_roles, age, sex, dob, pob,
+            educational_attainment, occupation, company_office, technical_skills,
+            ethnic_group, languages, present_address, provincial_address,
+            civil_status, citizenship, religion, height_cm, weight_kg, height_ft,
+            eyes_color, hair_color, built, complexion, distinguishing_marks,
+            previous_arrest, specific_charge, arrest_datetime, arrest_place,
+            arresting_officer, arresting_unit, drugs_involved,
+            
+            -- NEW FIELDS
+            source_relationship, source_address, source_name, source_nickname, 
+            source_full_address, source_other_drugs, subgroup_name, specific_aor,
+            other_source_name, other_source_alias, other_source_details, 
+            drugs_pushed, other_drugs_pushed,
+            -- END NEW FIELDS
+            
+            vehicles_used, armaments, companions_arrest, recruitment_summary, 
+            modus_operandi, organizational_structure, ci_matters, other_revelations, 
+            recommendation, created_by, status
+        ) VALUES (
+            :full_name, :alias, :group_affiliation, :position_roles, :age, :sex, :dob, :pob,
+            :educational_attainment, :occupation, :company_office, :technical_skills,
+            :ethnic_group, :languages, :present_address, :provincial_address,
+            :civil_status, :citizenship, :religion, :height_cm, :weight_kg, :height_ft,
+            :eyes_color, :hair_color, :built, :complexion, :distinguishing_marks,
+            :previous_arrest, :specific_charge, :arrest_datetime, :arrest_place,
+            :arresting_officer, :arresting_unit, :drugs_involved,
+            
+            -- NEW FIELDS (must match order above)
+            :source_relationship, :source_address, :source_name, :source_nickname,
+            :source_full_address, :source_other_drugs, :subgroup_name, :specific_aor,
+            :other_source_name, :other_source_alias, :other_source_details,
+            :drugs_pushed, :other_drugs_pushed,
+            -- END NEW FIELDS
+            
+            :vehicles_used, :armaments, :companions_arrest, :recruitment_summary,
+            :modus_operandi, :organizational_structure, :ci_matters, :other_revelations,
+            :recommendation, :created_by, :status
+        )";
         
         $stmt = $db->prepare($query);
         
-            // Prepare parameters
-$params = [
-    ':full_name' => $_POST['full_name'],
-    ':alias' => $_POST['alias'],
-    ':group_affiliation' => $_POST['group_affiliation'],
-    ':position_roles' => $_POST['position_roles'],
-    ':age' => $_POST['age'],
-    ':sex' => $_POST['sex'],
-    ':dob' => $_POST['dob'],
-    ':pob' => $_POST['pob'],
-    ':educational_attainment' => $_POST['educational_attainment'],
-    ':occupation' => $_POST['occupation'],
-    ':company_office' => $_POST['company_office'],
-    ':technical_skills' => $_POST['technical_skills'],
-    ':ethnic_group' => $_POST['ethnic_group'],
-    ':languages' => $_POST['languages'],
-    ':present_address' => $_POST['present_address'],
-    ':provincial_address' => $_POST['provincial_address'],
-    ':civil_status' => $_POST['civil_status'],
-    ':citizenship' => $_POST['citizenship'],
-    ':religion' => $_POST['religion'],
-    ':height_cm' => $_POST['height_cm'] ?: null,
-    ':weight_kg' => $_POST['weight_kg'] ?: null,
-    ':height_ft' => $_POST['height_ft'],
-    ':eyes_color' => $_POST['eyes_color'],
-    ':hair_color' => $_POST['hair_color'],
-    ':built' => $_POST['built'],
-    ':complexion' => $_POST['complexion'],
-    ':distinguishing_marks' => $_POST['distinguishing_marks'],
-    ':previous_arrest' => $_POST['previous_arrest'],
-    ':specific_charge' => $_POST['specific_charge'],
-    ':arrest_datetime' => $_POST['arrest_datetime'] ?: null,
-    ':arrest_place' => $_POST['arrest_place'],
-    ':arresting_officer' => $_POST['arresting_officer'],
-    ':arresting_unit' => $_POST['arresting_unit'],
-    ':drugs_involved' => $_POST['drugs_involved'],
-    
-    // NEW FIELDS ADDED HERE
-    ':source_relationship' => $_POST['source_relationship'] ?? null,
-    ':source_address' => $_POST['source_address'] ?? null,
-    ':source_name' => $_POST['source_name'] ?? null,
-    ':source_nickname' => $_POST['source_nickname'] ?? null,
-    ':source_full_address' => $_POST['source_full_address'] ?? null,
-    ':source_other_drugs' => $_POST['source_other_drugs'] ?? null,
-    ':subgroup_name' => $_POST['subgroup_name'] ?? null,
-    ':specific_aor' => $_POST['specific_aor'] ?? null,
-    ':other_source_name' => $_POST['other_source_name'] ?? null,
-    ':other_source_alias' => $_POST['other_source_alias'] ?? null,
-    ':other_source_details' => $_POST['other_source_details'] ?? null,
-    ':drugs_pushed' => isset($_POST['drugs_pushed']) ? implode(', ', $_POST['drugs_pushed']) : null,
-    ':other_drugs_pushed' => $_POST['other_drugs_pushed'] ?? null,
-    // END OF NEW FIELDS
-    
-    ':vehicles_used' => $_POST['vehicles_used'],
-    ':armaments' => $_POST['armaments'],
-    ':companions_arrest' => $_POST['companions_arrest'],
-    ':recruitment_summary' => $_POST['recruitment_summary'],
-    ':modus_operandi' => $_POST['modus_operandi'],
-    ':organizational_structure' => $_POST['organizational_structure'],
-    ':ci_matters' => $_POST['ci_matters'],
-    ':other_revelations' => $_POST['other_revelations'],
-    ':recommendation' => $_POST['recommendation'],
-    ':created_by' => $_SESSION['user_id'],
-    ':status' => $_POST['status']
-];
+        // Prepare parameters
+        $params = [
+            ':full_name' => $_POST['full_name'],
+            ':alias' => $_POST['alias'],
+            ':group_affiliation' => $_POST['group_affiliation'],
+            ':position_roles' => $position_roles,
+            ':age' => $_POST['age'],
+            ':sex' => $_POST['sex'],
+            ':dob' => $_POST['dob'],
+            ':pob' => $_POST['pob'],
+            ':educational_attainment' => $_POST['educational_attainment'],
+            ':occupation' => $_POST['occupation'],
+            ':company_office' => $_POST['company_office'],
+            ':technical_skills' => $_POST['technical_skills'],
+            ':ethnic_group' => $_POST['ethnic_group'],
+            ':languages' => $_POST['languages'],
+            ':present_address' => $_POST['present_address'],
+            ':provincial_address' => $_POST['provincial_address'],
+            ':civil_status' => $_POST['civil_status'],
+            ':citizenship' => $_POST['citizenship'],
+            ':religion' => $_POST['religion'],
+            ':height_cm' => $_POST['height_cm'] ?: null,
+            ':weight_kg' => $_POST['weight_kg'] ?: null,
+            ':height_ft' => $_POST['height_ft'],
+            ':eyes_color' => $_POST['eyes_color'],
+            ':hair_color' => $_POST['hair_color'],
+            ':built' => $_POST['built'],
+            ':complexion' => $_POST['complexion'],
+            ':distinguishing_marks' => $_POST['distinguishing_marks'],
+            ':previous_arrest' => $_POST['previous_arrest'],
+            ':specific_charge' => $_POST['specific_charge'],
+            ':arrest_datetime' => $_POST['arrest_datetime'] ?: null,
+            ':arrest_place' => $_POST['arrest_place'],
+            ':arresting_officer' => $_POST['arresting_officer'],
+            ':arresting_unit' => $_POST['arresting_unit'],
+            ':drugs_involved' => $drug_types,
+            
+            // NEW FIELDS ADDED HERE
+            ':source_relationship' => $_POST['source_relationship'] ?? null,
+            ':source_address' => $_POST['source_address'] ?? null,
+            ':source_name' => $_POST['source_name'] ?? null,
+            ':source_nickname' => $_POST['source_nickname'] ?? null,
+            ':source_full_address' => $_POST['source_full_address'] ?? null,
+            ':source_other_drugs' => $_POST['source_other_drugs'] ?? null,
+            ':subgroup_name' => $_POST['subgroup_name'] ?? null,
+            ':specific_aor' => $_POST['specific_aor'] ?? null,
+            ':other_source_name' => $_POST['other_source_name'] ?? null,
+            ':other_source_alias' => $_POST['other_source_alias'] ?? null,
+            ':other_source_details' => $_POST['other_source_details'] ?? null,
+            ':drugs_pushed' => isset($_POST['drugs_pushed']) ? implode(', ', $_POST['drugs_pushed']) : null,
+            ':other_drugs_pushed' => $_POST['other_drugs_pushed'] ?? null,
+            // END OF NEW FIELDS
+            
+            ':vehicles_used' => $_POST['vehicles_used'],
+            ':armaments' => $_POST['armaments'],
+            ':companions_arrest' => $_POST['companions_arrest'],
+            ':recruitment_summary' => $_POST['recruitment_summary'],
+            ':modus_operandi' => $_POST['modus_operandi'],
+            ':organizational_structure' => $_POST['organizational_structure'],
+            ':ci_matters' => $_POST['ci_matters'],
+            ':other_revelations' => $_POST['other_revelations'],
+            ':recommendation' => $_POST['recommendation'],
+            ':created_by' => $_SESSION['user_id'],
+            ':status' => $_POST['status']
+        ];
         
         $stmt->execute($params);
         
@@ -283,26 +301,31 @@ $params = [
             text-align: center;
         }
         
-        /* Conditional dropdown styles */
-        .position-container {
-            display: flex;
-            gap: 10px;
-            align-items: center;
+        /* Checkbox styles */
+        .checkbox-container {
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            background: white;
+            width: 100%;
         }
         
-        .position-container select,
-        .position-container input {
-            flex: 1;
+        .form-check {
+            margin-bottom: 8px;
         }
         
-        .drug-type-badge {
-            background: #c9a959;
-            color: #0a2f4d;
-            padding: 5px 10px;
-            border-radius: 3px;
-            font-weight: bold;
-            font-size: 12px;
-            display: inline-block;
+        .form-check-input {
+            margin-right: 8px;
+        }
+        
+        .form-check-label {
+            color: #333;
+            font-weight: normal;
+        }
+        
+        .section-divider {
+            border-top: 2px solid #c9a959;
+            margin: 20px 0;
         }
     </style>
 </head>
@@ -374,31 +397,43 @@ $params = [
                                                value="<?php echo isset($_POST['group_affiliation']) ? htmlspecialchars($_POST['group_affiliation']) : ''; ?>">
                                     </td>
                                 </tr>
+                                
+                                <!-- Multiple Drug Type Selection -->
                                 <tr>
-                                    <th>Position (if any):</th>
+                                 
+                                <!-- Multiple Position Selection -->
+                                <tr>
+                                    <th>Position/Role:</th>
                                     <td>
-                                        <div class="position-container">
-                                            <select class="form-select" id="drugType" onchange="togglePositionFields()">
-                                                <option value="">Select Drug Type</option>
-                                                <option value="marijuana" <?php echo (isset($_POST['drug_type']) && $_POST['drug_type'] == 'marijuana') ? 'selected' : ''; ?>>Marijuana</option>
-                                                <option value="shabu" <?php echo (isset($_POST['drug_type']) && $_POST['drug_type'] == 'shabu') ? 'selected' : ''; ?>>Shabu</option>
-                                                <option value="other" <?php echo (isset($_POST['drug_type']) && $_POST['drug_type'] == 'other') ? 'selected' : ''; ?>>Other Drugs</option>
-                                            </select>
-                                            
-                                            <select class="form-select" id="drugRole" name="position_roles" style="display: none;">
-                                                <option value="">Select Role</option>
-                                                <option value="User">User</option>
-                                                <option value="Pusher">Pusher</option>
-                                                <option value="Runner">Runner</option>
-                                            </select>
-                                            
-                                            <input type="text" class="form-control" id="otherPosition" name="position_roles" 
-                                                   placeholder="Enter position" style="display: none;"
-                                                   value="<?php echo isset($_POST['position_roles']) ? htmlspecialchars($_POST['position_roles']) : ''; ?>">
+                                        <div class="checkbox-container">
+                                            <label class="form-label">Select Position/s (you can select multiple):</label>
+                                            <div class="row">
+                                                <div class="col-md-4">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" name="position_roles[]" value="User" id="posUser"
+                                                               <?php echo (isset($_POST['position_roles']) && is_array($_POST['position_roles']) && in_array('User', $_POST['position_roles'])) ? 'checked' : ''; ?>>
+                                                        <label class="form-check-label" for="posUser">User</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" name="position_roles[]" value="Pusher" id="posPusher"
+                                                               <?php echo (isset($_POST['position_roles']) && is_array($_POST['position_roles']) && in_array('Pusher', $_POST['position_roles'])) ? 'checked' : ''; ?>>
+                                                        <label class="form-check-label" for="posPusher">Pusher</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" name="position_roles[]" value="Runner" id="posRunner"
+                                                               <?php echo (isset($_POST['position_roles']) && is_array($_POST['position_roles']) && in_array('Runner', $_POST['position_roles'])) ? 'checked' : ''; ?>>
+                                                        <label class="form-check-label" for="posRunner">Runner</label>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <small class="text-muted">Select drug type first to see relevant positions</small>
                                     </td>
                                 </tr>
+                                
                                 <tr>
                                     <th>Age:</th>
                                     <td>
@@ -779,184 +814,181 @@ $params = [
                         </button>
                     </div>
                 </div>
-
                 <!-- III. Tactical Information -->
-                <!-- III. Tactical Information -->
-<div class="form-section">
-    <h4><i class="fas fa-info-circle"></i> III. Tactical Information</h4>
-    
-    <table class="table table-bordered">
-        <tr>
-            <th style="width: 250px;">Drugs Involved:</th>
-            <td>
-                <input type="text" class="form-control" name="drugs_involved" id="drugs_involved"
-                       value="<?php echo isset($_POST['drugs_involved']) ? htmlspecialchars($_POST['drugs_involved']) : ''; ?>">
-                <small class="text-muted">Separate multiple drugs with commas</small>
-            </td>
-        </tr>
-        
-        <!-- New Fields for Drug Source Information -->
-        <tr>
-            <th>Relationship/Address of Source:</th>
-            <td>
-                <div class="row mb-2">
-                    <div class="col-md-6">
-                        <input type="text" class="form-control" name="source_relationship" 
-                               placeholder="Relationship to source"
-                               value="<?php echo isset($_POST['source_relationship']) ? htmlspecialchars($_POST['source_relationship']) : ''; ?>">
-                    </div>
-                    <div class="col-md-6">
-                        <input type="text" class="form-control" name="source_address" 
-                               placeholder="Address of source"
-                               value="<?php echo isset($_POST['source_address']) ? htmlspecialchars($_POST['source_address']) : ''; ?>">
-                    </div>
+                <div class="form-section">
+                    <h4><i class="fas fa-info-circle"></i> III. Tactical Information</h4>
+                    
+                    <table class="table table-bordered">
+                        <tr>
+                            <th style="width: 250px;">Drugs Involved:</th>
+                            <td>
+                                        <input type="text" class="form-control" name="arresting_unit"
+                                               value="<?php echo isset($_POST['arresting_unit']) ? htmlspecialchars($_POST['arresting_unit']) : ''; ?>">
+                                    </td>
+                        </tr>
+                        
+                        <!-- New Fields for Drug Source Information -->
+                        <tr>
+                            <th>Relationship/Address of Source:</th>
+                            <td>
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <input type="text" class="form-control" name="source_relationship" 
+                                               placeholder="Relationship to source"
+                                               value="<?php echo isset($_POST['source_relationship']) ? htmlspecialchars($_POST['source_relationship']) : ''; ?>">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <input type="text" class="form-control" name="source_address" 
+                                               placeholder="Address of source"
+                                               value="<?php echo isset($_POST['source_address']) ? htmlspecialchars($_POST['source_address']) : ''; ?>">
+                                    </div>
+                                </div>
+                                <small class="text-muted">e.g., Friend, Relative, Acquaintance / Complete address of drug source</small>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <th>Name/Source of Drugs Involved:</th>
+                            <td>
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <input type="text" class="form-control" name="source_name" 
+                                               placeholder="Name of source/person"
+                                               value="<?php echo isset($_POST['source_name']) ? htmlspecialchars($_POST['source_name']) : ''; ?>">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <input type="text" class="form-control" name="source_nickname" 
+                                               placeholder="Alias/Nickname"
+                                               value="<?php echo isset($_POST['source_nickname']) ? htmlspecialchars($_POST['source_nickname']) : ''; ?>">
+                                    </div>
+                                </div>
+                                <small class="text-muted">Full name and alias of the person supplying drugs</small>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <th>Address of Alleged Source:</th>
+                            <td>
+                                <textarea class="form-control" name="source_full_address" rows="2"><?php echo isset($_POST['source_full_address']) ? htmlspecialchars($_POST['source_full_address']) : ''; ?></textarea>
+                                <small class="text-muted">Complete address including barangay, city, province</small>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <th>Other Types of Drugs Supplied by Source:</th>
+                            <td>
+                                <input type="text" class="form-control" name="source_other_drugs" 
+                                       placeholder="e.g., Shabu, Marijuana, Ecstasy, etc."
+                                       value="<?php echo isset($_POST['source_other_drugs']) ? htmlspecialchars($_POST['source_other_drugs']) : ''; ?>">
+                                <small class="text-muted">Separate multiple drugs with commas</small>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <th>Subgroups and Specific AOR:</th>
+                            <td>
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <input type="text" class="form-control" name="subgroup_name" 
+                                               placeholder="Subgroup name"
+                                               value="<?php echo isset($_POST['subgroup_name']) ? htmlspecialchars($_POST['subgroup_name']) : ''; ?>">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <input type="text" class="form-control" name="specific_aor" 
+                                               placeholder="Area of Responsibility (AOR)"
+                                               value="<?php echo isset($_POST['specific_aor']) ? htmlspecialchars($_POST['specific_aor']) : ''; ?>">
+                                    </div>
+                                </div>
+                                <small class="text-muted">Specific group/subgroup and their area of responsibility</small>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <th>Other Subject Known as Source:</th>
+                            <td>
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <input type="text" class="form-control" name="other_source_name" 
+                                               placeholder="Name of other source"
+                                               value="<?php echo isset($_POST['other_source_name']) ? htmlspecialchars($_POST['other_source_name']) : ''; ?>">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <input type="text" class="form-control" name="other_source_alias" 
+                                               placeholder="Alias"
+                                               value="<?php echo isset($_POST['other_source_alias']) ? htmlspecialchars($_POST['other_source_alias']) : ''; ?>">
+                                    </div>
+                                </div>
+                                <textarea class="form-control mt-2" name="other_source_details" rows="2" 
+                                          placeholder="Additional details about other source"><?php echo isset($_POST['other_source_details']) ? htmlspecialchars($_POST['other_source_details']) : ''; ?></textarea>
+                                <small class="text-muted">Other individuals known as drug sources</small>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <th>Types of Drugs Pushed by Subject:</th>
+                            <td>
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="checkbox" name="drugs_pushed[]" value="Shabu" 
+                                                   <?php echo (isset($_POST['drugs_pushed']) && in_array('Shabu', $_POST['drugs_pushed'])) ? 'checked' : ''; ?>>
+                                            <label class="form-check-label">Shabu</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="checkbox" name="drugs_pushed[]" value="Marijuana"
+                                                   <?php echo (isset($_POST['drugs_pushed']) && in_array('Marijuana', $_POST['drugs_pushed'])) ? 'checked' : ''; ?>>
+                                            <label class="form-check-label">Marijuana</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="checkbox" name="drugs_pushed[]" value="Ecstasy"
+                                                   <?php echo (isset($_POST['drugs_pushed']) && in_array('Ecstasy', $_POST['drugs_pushed'])) ? 'checked' : ''; ?>>
+                                            <label class="form-check-label">Ecstasy</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="checkbox" name="drugs_pushed[]" value="Cocaine"
+                                                   <?php echo (isset($_POST['drugs_pushed']) && in_array('Cocaine', $_POST['drugs_pushed'])) ? 'checked' : ''; ?>>
+                                            <label class="form-check-label">Cocaine</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt-2">
+                                    <div class="col-md-12">
+                                        <input type="text" class="form-control" name="other_drugs_pushed" 
+                                               placeholder="Other drugs not listed above"
+                                               value="<?php echo isset($_POST['other_drugs_pushed']) ? htmlspecialchars($_POST['other_drugs_pushed']) : ''; ?>">
+                                    </div>
+                                </div>
+                                <small class="text-muted">Check all that apply or specify other drugs</small>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <th>Vehicles Used:</th>
+                            <td>
+                                <input type="text" class="form-control" name="vehicles_used"
+                                       placeholder="e.g., Motorcycle, Toyota Vios (ABC-123)"
+                                       value="<?php echo isset($_POST['vehicles_used']) ? htmlspecialchars($_POST['vehicles_used']) : ''; ?>">
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <th>Armaments:</th>
+                            <td>
+                                <input type="text" class="form-control" name="armaments"
+                                       placeholder="e.g., .45 caliber pistol, Revolver"
+                                       value="<?php echo isset($_POST['armaments']) ? htmlspecialchars($_POST['armaments']) : ''; ?>">
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <th>Companion/s During Arrest:</th>
+                            <td>
+                                <textarea class="form-control" name="companions_arrest" rows="2" 
+                                          placeholder="Names of companions during arrest"><?php echo isset($_POST['companions_arrest']) ? htmlspecialchars($_POST['companions_arrest']) : ''; ?></textarea>
+                            </td>
+                        </tr>
+                    </table>
                 </div>
-                <small class="text-muted">e.g., Friend, Relative, Acquaintance / Complete address of drug source</small>
-            </td>
-        </tr>
-        
-        <tr>
-            <th>Name/Source of Drugs Involved:</th>
-            <td>
-                <div class="row mb-2">
-                    <div class="col-md-6">
-                        <input type="text" class="form-control" name="source_name" 
-                               placeholder="Name of source/person"
-                               value="<?php echo isset($_POST['source_name']) ? htmlspecialchars($_POST['source_name']) : ''; ?>">
-                    </div>
-                    <div class="col-md-6">
-                        <input type="text" class="form-control" name="source_nickname" 
-                               placeholder="Alias/Nickname"
-                               value="<?php echo isset($_POST['source_nickname']) ? htmlspecialchars($_POST['source_nickname']) : ''; ?>">
-                    </div>
-                </div>
-                <small class="text-muted">Full name and alias of the person supplying drugs</small>
-            </td>
-        </tr>
-        
-        <tr>
-            <th>Address of Alleged Source:</th>
-            <td>
-                <textarea class="form-control" name="source_full_address" rows="2"><?php echo isset($_POST['source_full_address']) ? htmlspecialchars($_POST['source_full_address']) : ''; ?></textarea>
-                <small class="text-muted">Complete address including barangay, city, province</small>
-            </td>
-        </tr>
-        
-        <tr>
-            <th>Other Types of Drugs Supplied by Source:</th>
-            <td>
-                <input type="text" class="form-control" name="source_other_drugs" 
-                       placeholder="e.g., Shabu, Marijuana, Ecstasy, etc."
-                       value="<?php echo isset($_POST['source_other_drugs']) ? htmlspecialchars($_POST['source_other_drugs']) : ''; ?>">
-                <small class="text-muted">Separate multiple drugs with commas</small>
-            </td>
-        </tr>
-        
-        <tr>
-            <th>Subgroups and Specific AOR:</th>
-            <td>
-                <div class="row mb-2">
-                    <div class="col-md-6">
-                        <input type="text" class="form-control" name="subgroup_name" 
-                               placeholder="Subgroup name"
-                               value="<?php echo isset($_POST['subgroup_name']) ? htmlspecialchars($_POST['subgroup_name']) : ''; ?>">
-                    </div>
-                    <div class="col-md-6">
-                        <input type="text" class="form-control" name="specific_aor" 
-                               placeholder="Area of Responsibility (AOR)"
-                               value="<?php echo isset($_POST['specific_aor']) ? htmlspecialchars($_POST['specific_aor']) : ''; ?>">
-                    </div>
-                </div>
-                <small class="text-muted">Specific group/subgroup and their area of responsibility</small>
-            </td>
-        </tr>
-        
-        <tr>
-            <th>Other Subject Known as Source:</th>
-            <td>
-                <div class="row mb-2">
-                    <div class="col-md-6">
-                        <input type="text" class="form-control" name="other_source_name" 
-                               placeholder="Name of other source"
-                               value="<?php echo isset($_POST['other_source_name']) ? htmlspecialchars($_POST['other_source_name']) : ''; ?>">
-                    </div>
-                    <div class="col-md-6">
-                        <input type="text" class="form-control" name="other_source_alias" 
-                               placeholder="Alias"
-                               value="<?php echo isset($_POST['other_source_alias']) ? htmlspecialchars($_POST['other_source_alias']) : ''; ?>">
-                    </div>
-                </div>
-                <textarea class="form-control mt-2" name="other_source_details" rows="2" 
-                          placeholder="Additional details about other source"><?php echo isset($_POST['other_source_details']) ? htmlspecialchars($_POST['other_source_details']) : ''; ?></textarea>
-                <small class="text-muted">Other individuals known as drug sources</small>
-            </td>
-        </tr>
-        
-        <tr>
-            <th>Types of Drugs Pushed by Subject:</th>
-            <td>
-                <div class="row">
-                    <div class="col-md-12">
-                        <div class="form-check form-check-inline">
-                            <input class="form-check-input" type="checkbox" name="drugs_pushed[]" value="Shabu" 
-                                   <?php echo (isset($_POST['drugs_pushed']) && in_array('Shabu', $_POST['drugs_pushed'])) ? 'checked' : ''; ?>>
-                            <label class="form-check-label">Shabu</label>
-                        </div>
-                        <div class="form-check form-check-inline">
-                            <input class="form-check-input" type="checkbox" name="drugs_pushed[]" value="Marijuana"
-                                   <?php echo (isset($_POST['drugs_pushed']) && in_array('Marijuana', $_POST['drugs_pushed'])) ? 'checked' : ''; ?>>
-                            <label class="form-check-label">Marijuana</label>
-                        </div>
-                        <div class="form-check form-check-inline">
-                            <input class="form-check-input" type="checkbox" name="drugs_pushed[]" value="Ecstasy"
-                                   <?php echo (isset($_POST['drugs_pushed']) && in_array('Ecstasy', $_POST['drugs_pushed'])) ? 'checked' : ''; ?>>
-                            <label class="form-check-label">Ecstasy</label>
-                        </div>
-                        <div class="form-check form-check-inline">
-                            <input class="form-check-input" type="checkbox" name="drugs_pushed[]" value="Cocaine"
-                                   <?php echo (isset($_POST['drugs_pushed']) && in_array('Cocaine', $_POST['drugs_pushed'])) ? 'checked' : ''; ?>>
-                            <label class="form-check-label">Cocaine</label>
-                        </div>
-                    </div>
-                </div>
-                <div class="row mt-2">
-                    <div class="col-md-12">
-                        <input type="text" class="form-control" name="other_drugs_pushed" 
-                               placeholder="Other drugs not listed above"
-                               value="<?php echo isset($_POST['other_drugs_pushed']) ? htmlspecialchars($_POST['other_drugs_pushed']) : ''; ?>">
-                    </div>
-                </div>
-                <small class="text-muted">Check all that apply or specify other drugs</small>
-            </td>
-        </tr>
-        
-        <tr>
-            <th>Vehicles Used:</th>
-            <td>
-                <input type="text" class="form-control" name="vehicles_used"
-                       placeholder="e.g., Motorcycle, Toyota Vios (ABC-123)"
-                       value="<?php echo isset($_POST['vehicles_used']) ? htmlspecialchars($_POST['vehicles_used']) : ''; ?>">
-            </td>
-        </tr>
-        
-        <tr>
-            <th>Armaments:</th>
-            <td>
-                <input type="text" class="form-control" name="armaments"
-                       placeholder="e.g., .45 caliber pistol, Revolver"
-                       value="<?php echo isset($_POST['armaments']) ? htmlspecialchars($_POST['armaments']) : ''; ?>">
-            </td>
-        </tr>
-        
-        <tr>
-            <th>Companion/s During Arrest:</th>
-            <td>
-                <textarea class="form-control" name="companions_arrest" rows="2" 
-                          placeholder="Names of companions during arrest"><?php echo isset($_POST['companions_arrest']) ? htmlspecialchars($_POST['companions_arrest']) : ''; ?></textarea>
-            </td>
-        </tr>
-    </table>
-</div>
 
                 <!-- IV. Recruitment Summary -->
                 <div class="form-section">
@@ -1054,35 +1086,6 @@ $params = [
     </div>
 
     <script>
-        // Function to toggle position fields based on drug type selection
-        function togglePositionFields() {
-            const drugType = document.getElementById('drugType').value;
-            const drugRole = document.getElementById('drugRole');
-            const otherPosition = document.getElementById('otherPosition');
-            
-            // Hide both initially
-            drugRole.style.display = 'none';
-            otherPosition.style.display = 'none';
-            
-            if (drugType === 'marijuana' || drugType === 'shabu') {
-                // Show role dropdown for marijuana and shabu
-                drugRole.style.display = 'block';
-                otherPosition.style.display = 'none';
-                
-                // Update dropdown label based on drug type
-                const options = drugRole.options;
-                for (let i = 0; i < options.length; i++) {
-                    if (options[i].value) {
-                        options[i].text = options[i].value + ' (' + drugType.toUpperCase() + ')';
-                    }
-                }
-            } else if (drugType === 'other') {
-                // Show text input for other drugs
-                drugRole.style.display = 'none';
-                otherPosition.style.display = 'block';
-            }
-        }
-        
         // Function to add sibling row
         function addSiblingRow() {
             const table = document.getElementById('siblingsTable').getElementsByTagName('tbody')[0];
@@ -1114,11 +1117,8 @@ $params = [
             }
         }
         
-        // Initialize on page load
+        // Auto-calculate age from DOB
         document.addEventListener('DOMContentLoaded', function() {
-            togglePositionFields();
-            
-            // Auto-calculate age from DOB
             const dobInput = document.querySelector('input[name="dob"]');
             const ageInput = document.querySelector('input[name="age"]');
             
@@ -1135,18 +1135,6 @@ $params = [
                         }
                         
                         ageInput.value = age;
-                    }
-                });
-            }
-            
-            // Auto-populate drugs_involved based on drug type selection
-            const drugTypeSelect = document.getElementById('drugType');
-            const drugsInvolvedInput = document.getElementById('drugs_involved');
-            
-            if (drugTypeSelect && drugsInvolvedInput) {
-                drugTypeSelect.addEventListener('change', function() {
-                    if (this.value && this.value !== 'other' && !drugsInvolvedInput.value) {
-                        drugsInvolvedInput.value = this.value.charAt(0).toUpperCase() + this.value.slice(1);
                     }
                 });
             }
