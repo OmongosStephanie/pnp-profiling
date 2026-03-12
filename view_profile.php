@@ -72,6 +72,10 @@ $drugTypesArray = !empty($profile['drugs_involved']) ? explode(', ', $profile['d
 
 // Parse position roles if stored as comma-separated
 $positionRolesArray = !empty($profile['position_roles']) ? explode(', ', $profile['position_roles']) : [];
+
+// Get current date for print header
+$currentDate = date('F d, Y');
+$currentTime = date('h:i A');
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -100,7 +104,7 @@ $positionRolesArray = !empty($profile['position_roles']) ? explode(', ', $profil
             line-height: 1.5;
         }
 
-        /* New Minimalist Header */
+        /* Minimalist Header */
         .app-header {
             background: #ffffff;
             padding: 12px 0;
@@ -193,78 +197,87 @@ $positionRolesArray = !empty($profile['position_roles']) ? explode(', ', $profil
             padding: 0 24px;
         }
 
-        /* Form-like Profile View */
+        /* Profile View Container */
         .profile-view {
             background: white;
             border: 1px solid #e2e8f0;
             border-radius: 16px;
             overflow: hidden;
+            margin-bottom: 30px;
         }
 
-        .view-header {
-            background: #f8fafc;
-            padding: 20px 24px;
-            border-bottom: 1px solid #e2e8f0;
+        /* Simplified PNP Header - Exactly like screenshot */
+        .simple-header {
+            background: #0a2f4d;
+            color: white;
+            padding: 15px 25px;
+            text-align: center;
+        }
+
+        .simple-header .provincial {
+            font-size: 20px;
+            font-weight: 600;
+            color: white;
+            display: block;
+            letter-spacing: 0.5px;
+        }
+
+        .simple-header .station {
+            font-size: 18px;
+            font-weight: 500;
+            color: white;
+            display: block;
+            margin: 2px 0;
+        }
+
+        .simple-header .address {
+            font-size: 14px;
+            color: #e0e0e0;
+            display: block;
+            margin-top: 3px;
+        }
+
+        .simple-header .phone {
+            font-size: 14px;
+            color: #e0e0e0;
+            display: block;
+            margin-top: 2px;
+        }
+
+        .simple-header .phone i {
+            margin-right: 5px;
+        }
+
+        /* Profile Header with Picture */
+        .profile-header-with-pic {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-        }
-
-        .view-header h3 {
-            font-size: 18px;
-            font-weight: 600;
-            color: #0f172a;
-            margin: 0;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .view-header h3 i {
-            color: #94a3b8;
-            font-size: 18px;
-        }
-
-        .profile-id {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            padding: 4px 12px;
-            border-radius: 30px;
-            font-size: 13px;
-            color: #475569;
-        }
-
-        /* Profile Info Section */
-        .profile-info-section {
-            padding: 24px;
+            align-items: flex-start;
+            padding: 20px 25px;
             border-bottom: 1px solid #e2e8f0;
-            display: flex;
-            gap: 30px;
-            flex-wrap: wrap;
+            background: #f8fafc;
         }
 
-        .info-main {
+        .profile-info-left {
             flex: 1;
-            min-width: 300px;
         }
 
-        .info-main h1 {
+        .profile-name-large {
             font-size: 28px;
             font-weight: 600;
             color: #0f172a;
-            margin-bottom: 15px;
-            letter-spacing: -0.02em;
+            margin-bottom: 10px;
         }
 
-        .badge-container {
+        .profile-badges {
             display: flex;
             flex-wrap: wrap;
             gap: 10px;
             margin-bottom: 15px;
         }
 
-        .light-badge {
-            background: #f1f5f9;
+        .badge-item {
+            background: white;
             border: 1px solid #e2e8f0;
             padding: 4px 12px;
             border-radius: 30px;
@@ -275,61 +288,51 @@ $positionRolesArray = !empty($profile['position_roles']) ? explode(', ', $profil
             gap: 6px;
         }
 
-        .light-badge i {
+        .badge-item i {
             color: #94a3b8;
             font-size: 11px;
         }
 
-        .status-tag {
+        .status-badge-large {
             display: inline-block;
-            padding: 4px 16px;
-            border-radius: 30px;
-            font-size: 12px;
+            background: #28a745;
+            color: white;
+            padding: 6px 16px;
+            border-radius: 4px;
+            font-size: 13px;
             font-weight: 600;
             text-transform: uppercase;
+            margin-bottom: 15px;
         }
 
-        .status-tag.active {
-            background: #d1fae5;
-            color: #065f46;
-        }
-
-        .status-tag.archived {
-            background: #fed7aa;
-            color: #92400e;
-        }
-
-        .status-tag.delisted {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-
-        .meta-info {
-            margin-top: 15px;
+        .meta-info-large {
             font-size: 13px;
             color: #64748b;
-            display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
         }
 
-        .meta-info i {
-            color: #94a3b8;
+        .meta-info-large i {
             margin-right: 4px;
+            color: #94a3b8;
         }
 
-        /* 2x2 Picture Box */
+        .meta-info-large span {
+            margin-right: 20px;
+        }
+
+        /* Picture Box - 2x2 */
         .picture-box-2x2 {
             width: 140px;
             height: 140px;
-            background: #f8fafc;
-            border: 2px solid #e2e8f0;
+            background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+            border: 2px solid #0a2f4d;
             border-radius: 12px;
             display: grid;
             grid-template-columns: 1fr 1fr;
             grid-template-rows: 1fr 1fr;
             gap: 4px;
             padding: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-left: 20px;
         }
 
         .picture-cell {
@@ -338,67 +341,85 @@ $positionRolesArray = !empty($profile['position_roles']) ? explode(', ', $profil
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #cbd5e1;
-            font-size: 24px;
-            border: 1px solid #f1f5f9;
+            color: #0a2f4d;
+            font-size: 28px;
+            border: 1px solid #cbd5e1;
         }
 
-        /* Section Styles */
-        .view-section {
-            padding: 24px;
+        .picture-label {
+            text-align: center;
+            margin-top: 5px;
+            font-size: 11px;
+            color: #64748b;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Table Styles - Exactly like screenshot */
+        .data-section {
+            padding: 20px 25px;
             border-bottom: 1px solid #e2e8f0;
         }
 
-        .view-section:last-child {
-            border-bottom: none;
-        }
-
-        .section-heading {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        .section-heading i {
+        .section-title {
             font-size: 18px;
-            color: #94a3b8;
-        }
-
-        .section-heading h4 {
-            font-size: 16px;
             font-weight: 600;
             color: #0f172a;
-            margin: 0;
+            margin-bottom: 15px;
             text-transform: uppercase;
-            letter-spacing: 0.02em;
+            letter-spacing: 0.5px;
         }
 
-        /* Grid Layout */
-        .info-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 16px;
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
         }
 
-        .info-item {
+        .info-table th {
             background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 10px;
-            padding: 14px;
-        }
-
-        .info-item .label {
-            font-size: 11px;
-            color: #64748b;
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #475569;
+            font-size: 12px;
             text-transform: uppercase;
-            margin-bottom: 4px;
+            border: 1px solid #e2e8f0;
         }
 
-        .info-item .value {
-            font-size: 15px;
+        .info-table td {
+            padding: 10px 12px;
+            border: 1px solid #e2e8f0;
+            color: #334155;
+            font-size: 14px;
+        }
+
+        .info-table td:first-child {
             font-weight: 500;
-            color: #0f172a;
+            background: #f8fafc;
+            width: 150px;
+        }
+
+        /* Address section */
+        .address-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+
+        .address-table td {
+            padding: 10px 12px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .address-table .label {
+            background: #f8fafc;
+            font-weight: 600;
+            color: #475569;
+            width: 150px;
+            font-size: 12px;
+            text-transform: uppercase;
         }
 
         /* Tag Styles */
@@ -407,15 +428,6 @@ $positionRolesArray = !empty($profile['position_roles']) ? explode(', ', $profil
             flex-wrap: wrap;
             gap: 6px;
             margin-top: 6px;
-        }
-
-        .role-tag {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            color: #334155;
-            padding: 3px 10px;
-            border-radius: 30px;
-            font-size: 12px;
         }
 
         .drug-tag {
@@ -440,38 +452,11 @@ $positionRolesArray = !empty($profile['position_roles']) ? explode(', ', $profil
             border: 1px solid #b8daff;
         }
 
-        /* Table Styles */
-        .table-responsive {
-            overflow-x: auto;
-            border: 1px solid #e2e8f0;
-            border-radius: 10px;
-        }
-
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 14px;
-        }
-
-        .data-table th {
-            background: #f8fafc;
-            padding: 12px 16px;
-            text-align: left;
-            font-weight: 600;
-            color: #475569;
-            font-size: 12px;
-            text-transform: uppercase;
-            border-bottom: 1px solid #e2e8f0;
-        }
-
-        .data-table td {
-            padding: 10px 16px;
-            border-bottom: 1px solid #f1f5f9;
-            color: #334155;
-        }
-
-        .data-table tr:last-child td {
-            border-bottom: none;
+        /* Two Column Layout */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
         }
 
         /* Action Buttons */
@@ -523,6 +508,25 @@ $positionRolesArray = !empty($profile['position_roles']) ? explode(', ', $profil
 
         .btn-secondary:hover {
             background: #f1f5f9;
+        }
+
+        .btn-print {
+            background: #0891b2;
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 40px;
+            font-size: 14px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-print:hover {
+            background: #0e7490;
         }
 
         .btn-delete {
@@ -578,41 +582,152 @@ $positionRolesArray = !empty($profile['position_roles']) ? explode(', ', $profil
             color: #0f172a;
         }
 
-        /* Two Column Layout */
-        .two-col {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
+        /* PRINT STYLES */
+        @media print {
+            @page {
+                size: A4;
+                margin: 1.5cm;
+            }
+
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            /* Hide navigation elements */
+            .app-header,
+            .btn-icon,
+            .action-bar,
+            .app-footer,
+            .footer-links,
+            .btn-print,
+            .btn-secondary,
+            .btn-primary,
+            .btn-delete {
+                display: none !important;
+            }
+
+            .main-container {
+                margin: 0;
+                padding: 0;
+            }
+
+            .profile-view {
+                border: none;
+                box-shadow: none;
+            }
+
+            /* Simple header for print */
+            .simple-header {
+                background: #0a2f4d !important;
+                color: white !important;
+                padding: 15px 25px;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            /* Picture box in print */
+            .picture-box-2x2 {
+                border: 2px solid #000 !important;
+                background: #f0f0f0 !important;
+            }
+
+            .picture-cell {
+                border: 1px solid #000 !important;
+                color: #000 !important;
+            }
+
+            /* Table borders */
+            .info-table th,
+            .info-table td,
+            .address-table td {
+                border: 1px solid #000 !important;
+            }
+
+            .info-table th {
+                background: #f0f0f0 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .status-badge-large {
+                background: #28a745 !important;
+                color: white !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            /* Drug tags */
+            .drug-tag.marijuana {
+                background: #10b981 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .drug-tag.shabu {
+                background: #ef4444 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .drug-tag.other {
+                background: #6b7280 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .highlight-item {
+                background: #fff3cd !important;
+                border: 1px solid #ffc107 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .summary-item {
+                background: #e8f4fd !important;
+                border: 1px solid #b8daff !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            /* Ensure proper page breaks */
+            .data-section {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
         }
 
         @media (max-width: 768px) {
-            .two-col {
-                grid-template-columns: 1fr;
-            }
-            
-            .profile-info-section {
-                flex-direction: column;
-            }
-            
-            .picture-box-2x2 {
-                align-self: center;
-            }
-            
             .action-bar {
                 flex-direction: column;
             }
             
             .action-bar .btn-primary,
             .action-bar .btn-secondary,
+            .action-bar .btn-print,
             .action-bar .btn-delete {
                 width: 100%;
                 justify-content: center;
+            }
+
+            .two-col {
+                grid-template-columns: 1fr;
+            }
+
+            .profile-header-with-pic {
+                flex-direction: column;
+            }
+
+            .picture-box-2x2 {
+                margin-left: 0;
+                margin-top: 20px;
+                align-self: center;
             }
         }
     </style>
 </head>
 <body>
-    <!-- New Minimalist Header -->
+    <!-- Minimalist Header -->
     <header class="app-header">
         <div class="container">
             <div class="header-left">
@@ -635,192 +750,246 @@ $positionRolesArray = !empty($profile['position_roles']) ? explode(', ', $profil
     </header>
 
     <main class="main-container">
-        <!-- Profile View (Form-like) -->
+        <!-- Profile View -->
         <div class="profile-view">
-            <!-- View Header -->
-            <div class="view-header">
-                <h3>
-                    <i class="fas fa-id-card"></i>
-                    BIOGRAPHICAL PROFILE
-                </h3>
-                <span class="profile-id">#<?php echo str_pad($profile['id'] ?? 0, 6, '0', STR_PAD_LEFT); ?></span>
+            <!-- Simple Header - Exactly like screenshot -->
+            <div class="simple-header">
+                <div class="provincial">BUKIDNON POLICE PROVINCIAL OFFICE</div>
+                <div class="station">MANOLO FORTICH POLICE STATION</div>
+                <div class="address">Manolo Fortich, Bukidnon, 8703</div>
+                <div class="phone"><i class="fas fa-phone"></i> (088-228) 2244</div>
             </div>
-            
-            <!-- Profile Header with Picture -->
-            <div class="profile-info-section">
-                <div class="info-main">
-                    <h1><?php echo displayValue($profile['full_name']); ?></h1>
-                    
-                    <div class="badge-container">
-                        <span class="light-badge"><i class="fas fa-tag"></i> <?php echo displayValue($profile['alias']); ?></span>
-                        <span class="light-badge"><i class="fas fa-users"></i> <?php echo displayValue($profile['group_affiliation']); ?></span>
-                        <span class="light-badge"><i class="fas fa-briefcase"></i> <?php echo displayValue($profile['position_roles']); ?></span>
-                    </div>
-                    
-                    <div>
-                        <span class="status-tag <?php echo $profile['status']; ?>">
-                            <?php echo strtoupper($profile['status'] ?? 'ACTIVE'); ?>
-                        </span>
-                    </div>
-                    
-                    <div class="meta-info">
-                        <span><i class="fas fa-calendar"></i> Created: <?php echo !empty($profile['created_at']) ? date('M d, Y', strtotime($profile['created_at'])) : 'N/A'; ?></span>
-                        <span><i class="fas fa-user"></i> by <?php echo $creator_rank . ' ' . $creator_name; ?></span>
+
+            <!-- Profile Header with Picture Box on the Right -->
+            <div class="profile-header-with-pic">
+                <div class="profile-info-left"> 
+                    <div class="meta-info-large">
                     </div>
                 </div>
                 
-                <!-- 2x2 Picture Box -->
-                <div class="picture-box-2x2">
-                    <div class="picture-cell"><i class="fas fa-user"></i></div>
-                    <div class="picture-cell"><i class="fas fa-user"></i></div>
-                    <div class="picture-cell"><i class="fas fa-user"></i></div>
-                    <div class="picture-cell"><i class="fas fa-user"></i></div>
+                <!-- 2x2 Picture Box on the Right -->
+                <div>
+                    <div class="picture-box-2x2">
+                        <div class="picture-cell"><i class="fas fa-user"></i></div>
+                        <div class="picture-cell"><i class="fas fa-user"></i></div>
+                        <div class="picture-cell"><i class="fas fa-user"></i></div>
+                        <div class="picture-cell"><i class="fas fa-user"></i></div>
+                    </div>
+                    <div class="picture-label">2x2 PHOTO</div>
                 </div>
             </div>
 
-            <!-- I. Personal Data -->
-            <section class="view-section">
-                <div class="section-heading">
-                    <i class="fas fa-user"></i>
-                    <h4>I. PERSONAL DATA</h4>
-                </div>
+            <!-- PERSONAL DATA Section -->
+            <div class="data-section">
+                <div class="section-title">PERSONAL DATA</div>
                 
-                <div class="info-grid">
-                    <div class="info-item">
-                        <div class="label">Full Name</div>
-                        <div class="value"><?php echo displayValue($profile['full_name']); ?></div>
-                    </div>
-                    
-                    <div class="info-item">
-                        <div class="label">Alias</div>
-                        <div class="value"><?php echo displayValue($profile['alias']); ?></div>
-                    </div>
-                    
-                    <div class="info-item">
-                        <div class="label">Age / Sex</div>
-                        <div class="value"><?php echo $profile['age']; ?> / <?php echo $profile['sex']; ?></div>
-                    </div>
-                    
-                    <div class="info-item">
-                        <div class="label">Date of Birth</div>
-                        <div class="value"><?php echo !empty($profile['dob']) ? date('M d, Y', strtotime($profile['dob'])) : 'N/A'; ?></div>
-                    </div>
-                    
-                    <div class="info-item">
-                        <div class="label">Place of Birth</div>
-                        <div class="value"><?php echo displayValue($profile['pob']); ?></div>
-                    </div>
-                    
-                    <div class="info-item">
-                        <div class="label">Civil Status</div>
-                        <div class="value"><?php echo displayValue($profile['civil_status']); ?></div>
-                    </div>
-                    
-                    <div class="info-item">
-                        <div class="label">Citizenship</div>
-                        <div class="value"><?php echo displayValue($profile['citizenship']); ?></div>
-                    </div>
-                    
-                    <div class="info-item">
-                        <div class="label">Religion</div>
-                        <div class="value"><?php echo displayValue($profile['religion']); ?></div>
-                    </div>
-                    
-                    <div class="info-item">
-                        <div class="label">Education</div>
-                        <div class="value"><?php echo displayValue($profile['educational_attainment']); ?></div>
-                    </div>
-                    
-                    <div class="info-item">
-                        <div class="label">Occupation</div>
-                        <div class="value"><?php echo displayValue($profile['occupation']); ?></div>
-                    </div>
-                    
-                    <div class="info-item">
-                        <div class="label">Company/Office</div>
-                        <div class="value"><?php echo displayValue($profile['company_office']); ?></div>
-                    </div>
-                    
-                    <div class="info-item">
-                        <div class="label">Technical Skills</div>
-                        <div class="value"><?php echo displayValue($profile['technical_skills']); ?></div>
-                    </div>
-                </div>
+                <!-- Row 1 - Basic Info -->
+                <table class="info-table">
+                    <thead>
+                        <tr>
+                            <th>FULL NAME</th>
+                            <th>ALIAS</th>
+                            <th>AGE</th>
+                            <th>SEX</th>
+                            <th>DATE OF BIRTH</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><?php echo displayValue($profile['full_name']); ?></td>
+                            <td><?php echo displayValue($profile['alias']); ?></td>
+                            <td><?php echo $profile['age']; ?></td>
+                            <td><?php echo $profile['sex']; ?></td>
+                            <td><?php echo !empty($profile['dob']) ? date('M d, Y', strtotime($profile['dob'])) : 'N/A'; ?></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Row 2 - Place of Birth, Civil Status, Citizenship, Religion -->
+                <table class="info-table">
+                    <thead>
+                        <tr>
+                            <th>PLACE OF BIRTH</th>
+                            <th>CIVIL STATUS</th>
+                            <th>CITIZENSHIP</th>
+                            <th>RELIGION</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><?php echo displayValue($profile['pob']); ?></td>
+                            <td><?php echo displayValue($profile['civil_status']); ?></td>
+                            <td><?php echo displayValue($profile['citizenship']); ?></td>
+                            <td><?php echo displayValue($profile['religion']); ?></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Row 3 - Education, Occupation, Company/Office, Technical Skills -->
+                <table class="info-table">
+                    <thead>
+                        <tr>
+                            <th>EDUCATION</th>
+                            <th>OCCUPATION</th>
+                            <th>COMPANY/OFFICE</th>
+                            <th>TECHNICAL SKILLS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><?php echo displayValue($profile['educational_attainment']); ?></td>
+                            <td><?php echo displayValue($profile['occupation']); ?></td>
+                            <td><?php echo displayValue($profile['company_office']); ?></td>
+                            <td><?php echo displayValue($profile['technical_skills']); ?></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- PRESENT ADDRESS Section -->
+            <div class="data-section">
+                <div class="section-title">PRESENT ADDRESS</div>
+                <table class="address-table">
+                    <tr>
+                        <td class="label">PRESENT ADDRESS</td>
+                        <td><?php echo displayValue($profile['present_address']); ?></td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- PROVINCIAL ADDRESS Section -->
+            <div class="data-section">
+                <div class="section-title">PROVINCIAL ADDRESS</div>
+                <table class="address-table">
+                    <tr>
+                        <td class="label">PROVINCIAL ADDRESS</td>
+                        <td><?php echo displayValue($profile['provincial_address']); ?></td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- Physical Attributes Section -->
+            <div class="data-section">
+                <div class="section-title">PHYSICAL ATTRIBUTES</div>
                 
-                <div style="margin-top: 16px;">
-                    <div class="info-item">
-                        <div class="label">Present Address</div>
-                        <div class="value"><?php echo displayValue($profile['present_address']); ?></div>
-                    </div>
-                </div>
+                <!-- Row 1 - Height, Weight, Built, Eyes Color -->
+                <table class="info-table">
+                    <thead>
+                        <tr>
+                            <th>HEIGHT</th>
+                            <th>WEIGHT</th>
+                            <th>BUILT</th>
+                            <th>EYES COLOR</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><?php echo displayValue($profile['height_ft']); ?></td>
+                            <td><?php echo displayValue($profile['weight_kg']); ?> kg</td>
+                            <td><?php echo displayValue($profile['built']); ?></td>
+                            <td><?php echo displayValue($profile['eyes_color']); ?></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Row 2 - Hair Color, Complexion, Ethnic Group, Languages -->
+                <table class="info-table" style="margin-top: 15px;">
+                    <thead>
+                        <tr>
+                            <th>HAIR COLOR</th>
+                            <th>COMPLEXION</th>
+                            <th>ETHNIC GROUP</th>
+                            <th>LANGUAGES</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><?php echo displayValue($profile['hair_color']); ?></td>
+                            <td><?php echo displayValue($profile['complexion']); ?></td>
+                            <td><?php echo displayValue($profile['ethnic_group']); ?></td>
+                            <td><?php echo displayValue($profile['languages']); ?></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- DISTINGUISHING MARKS Section -->
+            <div class="data-section">
+                <div class="section-title">DISTINGUISHING MARKS / TATTOO</div>
+                <table class="address-table">
+                    <tr>
+                        <td class="label">DISTINGUISHING MARKS</td>
+                        <td><?php echo displayValue($profile['distinguishing_marks']); ?></td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- PREVIOUS ARREST RECORD Section -->
+            <div class="data-section">
+                <div class="section-title">PREVIOUS ARREST RECORD</div>
+                <table class="address-table">
+                    <tr>
+                        <td class="label">PREVIOUS ARREST RECORD</td>
+                        <td><?php echo displayValue($profile['previous_arrest']); ?></td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- SPECIFIC CHARGE Section -->
+            <div class="data-section">
+                <div class="section-title">SPECIFIC CHARGE</div>
+                <table class="address-table">
+                    <tr>
+                        <td class="label">SPECIFIC CHARGE</td>
+                        <td><?php echo displayValue($profile['specific_charge']); ?></td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- ARREST DETAILS Section -->
+            <div class="data-section">
+                <div class="section-title">ARREST DETAILS</div>
                 
-                <div style="margin-top: 16px;">
-                    <div class="info-item">
-                        <div class="label">Provincial Address</div>
-                        <div class="value"><?php echo displayValue($profile['provincial_address']); ?></div>
-                    </div>
-                </div>
-                
-                <div class="info-grid" style="margin-top: 16px;">
-                    <div class="info-item">
-                        <div class="label">Height</div>
-                        <div class="value"><?php echo displayValue($profile['height_ft']); ?></div>
-                    </div>
-                    
-                    <div class="info-item">
-                        <div class="label">Weight</div>
-                        <div class="value"><?php echo displayValue($profile['weight_kg']); ?> kg</div>
-                    </div>
-                    
-                    <div class="info-item">
-                        <div class="label">Built</div>
-                        <div class="value"><?php echo displayValue($profile['built']); ?></div>
-                    </div>
-                    
-                    <div class="info-item">
-                        <div class="label">Eyes Color</div>
-                        <div class="value"><?php echo displayValue($profile['eyes_color']); ?></div>
-                    </div>
-                    
-                    <div class="info-item">
-                        <div class="label">Hair Color</div>
-                        <div class="value"><?php echo displayValue($profile['hair_color']); ?></div>
-                    </div>
-                    
-                    <div class="info-item">
-                        <div class="label">Complexion</div>
-                        <div class="value"><?php echo displayValue($profile['complexion']); ?></div>
-                    </div>
-                    
-                    <div class="info-item">
-                        <div class="label">Ethnic Group</div>
-                        <div class="value"><?php echo displayValue($profile['ethnic_group']); ?></div>
-                    </div>
-                    
-                    <div class="info-item">
-                        <div class="label">Languages</div>
-                        <div class="value"><?php echo displayValue($profile['languages']); ?></div>
-                    </div>
-                </div>
-                
-                <div style="margin-top: 16px;">
-                    <div class="info-item">
-                        <div class="label">Distinguishing Marks</div>
-                        <div class="value"><?php echo displayValue($profile['distinguishing_marks']); ?></div>
-                    </div>
-                </div>
-            </section>
+                <!-- Date/Time/Place of Arrest -->
+                <table class="info-table">
+                    <thead>
+                        <tr>
+                            <th>DATE/TIME OF ARREST</th>
+                            <th>PLACE OF ARREST</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><?php echo !empty($profile['arrest_datetime']) ? date('M d, Y H:i', strtotime($profile['arrest_datetime'])) : 'N/A'; ?></td>
+                            <td><?php echo displayValue($profile['arrest_place']); ?></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Arresting Officer and Unit -->
+                <table class="info-table" style="margin-top: 15px;">
+                    <thead>
+                        <tr>
+                            <th>ARRESTING OFFICER</th>
+                            <th>UNIT/OFFICE</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><?php echo displayValue($profile['arresting_officer']); ?></td>
+                            <td><?php echo displayValue($profile['arresting_unit']); ?></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
 
             <!-- II. Family Background -->
-            <section class="view-section">
-                <div class="section-heading">
-                    <i class="fas fa-users"></i>
-                    <h4>II. FAMILY BACKGROUND</h4>
-                </div>
+            <div class="data-section">
+                <div class="section-title">II. FAMILY BACKGROUND</div>
                 
                 <h5 style="margin-bottom: 12px; font-size: 14px; color: #475569;">Parents</h5>
                 <div class="table-responsive">
-                    <table class="data-table">
+                    <table class="info-table">
                         <thead>
                             <tr>
                                 <th></th>
@@ -855,7 +1024,7 @@ $positionRolesArray = !empty($profile['position_roles']) ? explode(', ', $profil
                 
                 <h5 style="margin: 24px 0 12px; font-size: 14px; color: #475569;">Spouse</h5>
                 <div class="table-responsive">
-                    <table class="data-table">
+                    <table class="info-table">
                         <thead>
                             <tr>
                                 <th>Name</th>
@@ -878,7 +1047,7 @@ $positionRolesArray = !empty($profile['position_roles']) ? explode(', ', $profil
                 <h5 style="margin: 24px 0 12px; font-size: 14px; color: #475569;">Siblings</h5>
                 <?php if (count($siblings) > 0): ?>
                     <div class="table-responsive">
-                        <table class="data-table">
+                        <table class="info-table">
                             <thead>
                                 <tr>
                                     <th>Name</th>
@@ -906,17 +1075,14 @@ $positionRolesArray = !empty($profile['position_roles']) ? explode(', ', $profil
                         No siblings recorded
                     </p>
                 <?php endif; ?>
-            </section>
+            </div>
 
             <!-- III. Tactical Information -->
-            <section class="view-section">
-                <div class="section-heading">
-                    <i class="fas fa-info-circle"></i>
-                    <h4>III. TACTICAL INFORMATION</h4>
-                </div>
+            <div class="data-section">
+                <div class="section-title">III. TACTICAL INFORMATION</div>
                 
-                <div class="info-item highlight-item" style="margin-bottom: 16px;">
-                    <div class="label">Drugs Involved</div>
+                <div class="info-item highlight-item" style="margin-bottom: 16px; padding: 15px;">
+                    <div class="label" style="font-size: 12px; margin-bottom: 8px;">Drugs Involved</div>
                     <div class="tag-wrapper">
                         <?php 
                         if (!empty($drugTypesArray)) {
@@ -926,7 +1092,7 @@ $positionRolesArray = !empty($profile['position_roles']) ? explode(', ', $profil
                                 if (stripos($drug, 'marijuana') !== false) $drugClass .= ' marijuana';
                                 elseif (stripos($drug, 'shabu') !== false) $drugClass .= ' shabu';
                                 else $drugClass .= ' other';
-                                echo '<span class="' . $drugClass . '">' . $drug . '</span>';
+                                echo '<span class="' . $drugClass . '">' . $drug . '</span> ';
                             }
                         } else {
                             echo displayValue($profile['drugs_involved']);
@@ -937,44 +1103,44 @@ $positionRolesArray = !empty($profile['position_roles']) ? explode(', ', $profil
                 
                 <div class="two-col">
                     <div>
-                        <div class="info-item">
+                        <div class="info-item" style="margin-bottom: 12px;">
                             <div class="label">Relationship to Source</div>
                             <div class="value"><?php echo displayValue($profile['source_relationship']); ?></div>
                         </div>
                         
-                        <div class="info-item" style="margin-top: 12px;">
+                        <div class="info-item" style="margin-bottom: 12px;">
                             <div class="label">Source Address</div>
                             <div class="value"><?php echo displayValue($profile['source_address']); ?></div>
                         </div>
                         
-                        <div class="info-item" style="margin-top: 12px;">
+                        <div class="info-item" style="margin-bottom: 12px;">
                             <div class="label">Source Name</div>
                             <div class="value"><?php echo displayValue($profile['source_name']); ?></div>
                         </div>
                         
-                        <div class="info-item" style="margin-top: 12px;">
+                        <div class="info-item">
                             <div class="label">Source Alias</div>
                             <div class="value"><?php echo displayValue($profile['source_nickname']); ?></div>
                         </div>
                     </div>
                     
                     <div>
-                        <div class="info-item">
+                        <div class="info-item" style="margin-bottom: 12px;">
                             <div class="label">Subgroup Name</div>
                             <div class="value"><?php echo displayValue($profile['subgroup_name']); ?></div>
                         </div>
                         
-                        <div class="info-item" style="margin-top: 12px;">
+                        <div class="info-item" style="margin-bottom: 12px;">
                             <div class="label">Area of Responsibility</div>
                             <div class="value"><?php echo displayValue($profile['specific_aor']); ?></div>
                         </div>
                         
-                        <div class="info-item" style="margin-top: 12px;">
+                        <div class="info-item" style="margin-bottom: 12px;">
                             <div class="label">Vehicles Used</div>
                             <div class="value"><?php echo displayValue($profile['vehicles_used']); ?></div>
                         </div>
                         
-                        <div class="info-item" style="margin-top: 12px;">
+                        <div class="info-item">
                             <div class="label">Armaments</div>
                             <div class="value"><?php echo displayValue($profile['armaments']); ?></div>
                         </div>
@@ -1031,7 +1197,7 @@ $positionRolesArray = !empty($profile['position_roles']) ? explode(', ', $profil
                                     if (stripos($drug, 'marijuana') !== false) $drugClass .= ' marijuana';
                                     elseif (stripos($drug, 'shabu') !== false) $drugClass .= ' shabu';
                                     else $drugClass .= ' other';
-                                    echo '<span class="' . $drugClass . '">' . $drug . '</span>';
+                                    echo '<span class="' . $drugClass . '">' . $drug . '</span> ';
                                 }
                                 if (!empty($profile['other_drugs_pushed'])) {
                                     echo '<span class="drug-tag other">' . $profile['other_drugs_pushed'] . '</span>';
@@ -1050,102 +1216,46 @@ $positionRolesArray = !empty($profile['position_roles']) ? explode(', ', $profil
                         <div class="value"><?php echo displayValue($profile['companions_arrest']); ?></div>
                     </div>
                 </div>
-            </section>
+            </div>
 
-            <!-- IV. Arrest Record -->
-            <section class="view-section">
-                <div class="section-heading">
-                    <i class="fas fa-gavel"></i>
-                    <h4>IV. ARREST RECORD</h4>
-                </div>
+            <!-- IV. Summary and Recommendations -->
+            <div class="data-section">
+                <div class="section-title">IV. SUMMARY & RECOMMENDATIONS</div>
                 
-                <div class="two-col">
-                    <div class="info-item">
-                        <div class="label">Previous Arrest Record</div>
-                        <div class="value"><?php echo displayValue($profile['previous_arrest']); ?></div>
-                    </div>
-                    
-                    <div class="info-item">
-                        <div class="label">Specific Charge</div>
-                        <div class="value"><?php echo displayValue($profile['specific_charge']); ?></div>
-                    </div>
-                </div>
-                
-                <div class="two-col" style="margin-top: 16px;">
-                    <div class="info-item">
-                        <div class="label">Date/Time of Arrest</div>
-                        <div class="value"><?php echo !empty($profile['arrest_datetime']) ? date('M d, Y H:i', strtotime($profile['arrest_datetime'])) : 'N/A'; ?></div>
-                    </div>
-                    
-                    <div class="info-item">
-                        <div class="label">Place of Arrest</div>
-                        <div class="value"><?php echo displayValue($profile['arrest_place']); ?></div>
-                    </div>
-                </div>
-                
-                <div class="two-col" style="margin-top: 16px;">
-                    <div class="info-item">
-                        <div class="label">Arresting Officer</div>
-                        <div class="value"><?php echo displayValue($profile['arresting_officer']); ?></div>
-                    </div>
-                    
-                    <div class="info-item">
-                        <div class="label">Unit/Office</div>
-                        <div class="value"><?php echo displayValue($profile['arresting_unit']); ?></div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- V. Summary and Recommendations -->
-            <section class="view-section">
-                <div class="section-heading">
-                    <i class="fas fa-file-alt"></i>
-                    <h4>V. SUMMARY & RECOMMENDATIONS</h4>
-                </div>
-                
-                <div class="info-item">
-                    <div class="label">Recruitment Summary</div>
+                <div class="info-item" style="margin-bottom: 16px;">
+                    <div class="label">Detailed Summary on Recruitment of Suspect as User/Pusher/Drugs</div>
                     <div class="value"><?php echo displayValue($profile['recruitment_summary']); ?></div>
                 </div>
                 
-                <div class="info-item" style="margin-top: 16px;">
-                    <div class="label">Modus Operandi</div>
+                <div class="info-item" style="margin-bottom: 16px;">
+                    <div class="label">Summary of Pushing/Supplying/Acquiring Drugs</div>
                     <div class="value"><?php echo displayValue($profile['modus_operandi']); ?></div>
                 </div>
                 
-                <div class="info-item" style="margin-top: 16px;">
-                    <div class="label">Organizational Structure</div>
+                <div class="info-item" style="margin-bottom: 16px;">
+                    <div class="label">Organizational Structure of the Group (if any)</div>
                     <div class="value"><?php echo displayValue($profile['organizational_structure']); ?></div>
                 </div>
                 
-                <div class="info-item" style="margin-top: 16px;">
-                    <div class="label">CI Matters</div>
+                <div class="info-item" style="margin-bottom: 16px;">
+                    <div class="label">CI Matters (AFP/PNP Government Officer's Instruments)</div>
                     <div class="value"><?php echo displayValue($profile['ci_matters']); ?></div>
                 </div>
                 
                 <?php if (!empty($profile['other_revelations'])): ?>
-                <div class="info-item" style="margin-top: 16px;">
-                    <div class="label">Other Revelations</div>
+                <div class="info-item" style="margin-bottom: 16px;">
+                    <div class="label">Other Significant Revelations</div>
                     <div class="value"><?php echo displayValue($profile['other_revelations']); ?></div>
                 </div>
                 <?php endif; ?>
                 
                 <div class="two-col" style="margin-top: 24px;">
-                    <div class="info-item summary-item">
+                    <div class="info-item summary-item" style="padding: 15px;">
                         <div class="label">Recommendation</div>
                         <div class="value" style="font-size: 16px; font-weight: 600;"><?php echo displayValue($profile['recommendation']); ?></div>
                     </div>
-                    
-                    <div class="info-item summary-item">
-                        <div class="label">Profile Status</div>
-                        <div class="value">
-                            <span class="status-tag <?php echo $profile['status']; ?>" style="margin-left: 0;">
-                                <?php echo strtoupper($profile['status']); ?>
-                            </span>
-                        </div>
-                    </div>
                 </div>
-            </section>
+            </div>
 
             <!-- Footer Information -->
             <div style="padding: 16px 24px; background: #f8fafc; border-top: 1px solid #e2e8f0; font-size: 12px; color: #64748b; display: flex; justify-content: space-between;">
@@ -1165,8 +1275,8 @@ $positionRolesArray = !empty($profile['position_roles']) ? explode(', ', $profil
             <a href="profile_form.php" class="btn-secondary">
                 <i class="fas fa-plus"></i> New
             </a>
-            <button onclick="window.print()" class="btn-secondary">
-                <i class="fas fa-print"></i> Print
+            <button onclick="window.print()" class="btn-print">
+                <i class="fas fa-print"></i> Print Profile
             </button>
             <?php if ($_SESSION['role'] == 'admin'): ?>
             <button onclick="confirmDelete(<?php echo $profile['id']; ?>)" class="btn-delete">
@@ -1176,7 +1286,7 @@ $positionRolesArray = !empty($profile['position_roles']) ? explode(', ', $profil
         </div>
     </main>
 
-    <!-- New Minimalist Footer -->
+    <!-- Minimalist Footer -->
     <footer class="app-footer">
         <div class="container">
             <div class="footer-links">
@@ -1184,9 +1294,6 @@ $positionRolesArray = !empty($profile['position_roles']) ? explode(', ', $profil
                 <a href="#">Terms</a>
                 <a href="#">Contact</a>
             </div>
-            <small>Department of the Interior and Local Government | PHILIPPINE NATIONAL POLICE<br>
-            BUKIDNON POLICE PROVINCIAL OFFICE | MANOLO FORTICH POLICE STATION<br>
-            © 2024 All rights reserved. This document is CONFIDENTIAL.</small>
         </div>
     </footer>
 

@@ -432,17 +432,6 @@ $profiles = $stmt->fetchAll(PDO::FETCH_ASSOC);
     </style>
 </head>
 <body>
-    <!-- Official PNP Header -->
-    <header class="pnp-header">
-        <div class="container">
-            <div class="header-content">
-                <span class="dilg">Department of the Interior and Local Government</span>
-                <span class="pnp">PHILIPPINE NATIONAL POLICE</span>
-                <span class="provincial">BUKIDNON POLICE PROVINCIAL OFFICE</span>
-                <span class="station">MANOLO FORTICH POLICE STATION</span>
-                <span class="address">Manolo Fortich, Bukidnon, 8703</span>
-                <span class="phone">(088-228) 2244</span>
-            </div>
             
             <div class="user-section">
                 <div class="user-badge">

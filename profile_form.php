@@ -1058,18 +1058,30 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                 <option value="Closed" <?php echo (isset($_POST['recommendation']) && $_POST['recommendation'] == 'Closed') ? 'selected' : ''; ?>>Closed</option>
                             </select>
                         </div>
-                        
+                         <div class="form-grid">
                         <div class="form-field">
-                            <label>Profile Status</label>
-                            <select class="form-select" name="status">
-                                <option value="active" <?php echo (isset($_POST['status']) && $_POST['status'] == 'active') ? 'selected' : ''; ?>>Active</option>
-                                <option value="archived" <?php echo (isset($_POST['status']) && $_POST['status'] == 'archived') ? 'selected' : ''; ?>>Archived</option>
-                                <option value="delisted" <?php echo (isset($_POST['status']) && $_POST['status'] == 'delisted') ? 'selected' : ''; ?>>Delisted</option>
+                            <label>Recommendation</label>
+                            <select class="form-select" name="recommendation">
+                                <option value="">Select</option>
+                                <option value="For Filing" <?php echo (isset($_POST['recommendation']) && $_POST['recommendation'] == 'For Filing') ? 'selected' : ''; ?>>For Filing</option>
+                                <option value="For Investigation" <?php echo (isset($_POST['recommendation']) && $_POST['recommendation'] == 'For Investigation') ? 'selected' : ''; ?>>For Investigation</option>
+                                <option value="For Delisting" <?php echo (isset($_POST['recommendation']) && $_POST['recommendation'] == 'For Delisting') ? 'selected' : ''; ?>>For Delisting</option>
+                                <option value="For Prosecution" <?php echo (isset($_POST['recommendation']) && $_POST['recommendation'] == 'For Prosecution') ? 'selected' : ''; ?>>For Prosecution</option>
+                                <option value="Closed" <?php echo (isset($_POST['recommendation']) && $_POST['recommendation'] == 'Closed') ? 'selected' : ''; ?>>Closed</option>
                             </select>
                         </div>
-                    </div>
-                </section>
-
+                         <div class="form-grid">
+                        <div class="form-field">
+                            <label>Recommendation</label>
+                            <select class="form-select" name="recommendation">
+                                <option value="">Select</option>
+                                <option value="For Filing" <?php echo (isset($_POST['recommendation']) && $_POST['recommendation'] == 'For Filing') ? 'selected' : ''; ?>>For Filing</option>
+                                <option value="For Investigation" <?php echo (isset($_POST['recommendation']) && $_POST['recommendation'] == 'For Investigation') ? 'selected' : ''; ?>>For Investigation</option>
+                                <option value="For Delisting" <?php echo (isset($_POST['recommendation']) && $_POST['recommendation'] == 'For Delisting') ? 'selected' : ''; ?>>For Delisting</option>
+                                <option value="For Prosecution" <?php echo (isset($_POST['recommendation']) && $_POST['recommendation'] == 'For Prosecution') ? 'selected' : ''; ?>>For Prosecution</option>
+                                <option value="Closed" <?php echo (isset($_POST['recommendation']) && $_POST['recommendation'] == 'Closed') ? 'selected' : ''; ?>>Closed</option>
+                            </select>
+                        </div>
                 <!-- Form Actions -->
                 <div class="form-actions">
                     <button type="submit" class="btn-primary">
@@ -1084,17 +1096,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 </div>
             </form>
         </div>
-
-        <footer class="site-footer">
-            <div class="container">
-                <small>Department of the Interior and Local Government | PHILIPPINE NATIONAL POLICE<br>
-                BUKIDNON POLICE PROVINCIAL OFFICE | MANOLO FORTICH POLICE STATION<br>
-                All data is confidential and for official use only.</small>
-            </div>
-        </footer>
-    </div>
-
-    <script>
+     <script>
         function addSiblingRow() {
             const table = document.getElementById('siblingsTable').getElementsByTagName('tbody')[0];
             const newRow = table.insertRow();
