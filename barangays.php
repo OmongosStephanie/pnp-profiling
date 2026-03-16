@@ -512,7 +512,8 @@ $all_barangays = [
                 </div>
                 <?php endif; ?>
                 
-                <a href="profiles.php?barangay=<?php echo urlencode($barangay); ?>" class="btn-view-barangay">
+                <!-- CHANGED: Link now points to barangay_profiles.php instead of profiles.php -->
+                <a href="barangay_profiles.php?barangay=<?php echo urlencode($barangay); ?>" class="btn-view-barangay">
                     <i class="fas fa-eye"></i> View Profiles
                 </a>
             </div>
