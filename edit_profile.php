@@ -42,11 +42,66 @@ $siblings = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $message = '';
 $error = '';
 
+// Handle picture upload
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['profile_picture'])) {
+    $target_dir = "uploads/";
+    if (!file_exists($target_dir)) {
+        mkdir($target_dir, 0777, true);
+    }
+    
+    $file_name = time() . '_' . basename($_FILES['profile_picture']['name']);
+    $target_file = $target_dir . $file_name;
+    $imageFileType = strtolower(pathinfo($target_file, PATHINFO_EXTENSION));
+    
+    // Check if image file is actual image
+    $check = getimagesize($_FILES['profile_picture']['tmp_name']);
+    if ($check !== false) {
+        // Allow certain file formats
+        if ($imageFileType == "jpg" || $imageFileType == "png" || $imageFileType == "jpeg" || $imageFileType == "gif") {
+            if (move_uploaded_file($_FILES['profile_picture']['tmp_name'], $target_file)) {
+                // Update profile picture in database
+                $update_query = "UPDATE biographical_profiles SET profile_picture = :profile_picture WHERE id = :id";
+                $update_stmt = $db->prepare($update_query);
+                $update_stmt->execute([
+                    ':profile_picture' => $target_file,
+                    ':id' => $id
+                ]);
+                $profile['profile_picture'] = $target_file;
+                $message = "Picture uploaded successfully!";
+            } else {
+                $error = "Sorry, there was an error uploading your file.";
+            }
+        } else {
+            $error = "Sorry, only JPG, JPEG, PNG & GIF files are allowed.";
+        }
+    } else {
+        $error = "File is not an image.";
+    }
+}
+
 // Handle form submission
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) {
     try {
         // Begin transaction
         $db->beginTransaction();
+        
+        // Process position_roles - combine multiple checkboxes
+        if (isset($_POST['position_roles']) && is_array($_POST['position_roles'])) {
+            $position_roles = implode(', ', $_POST['position_roles']);
+        } elseif (isset($_POST['position_roles_other']) && !empty($_POST['position_roles_other'])) {
+            $position_roles = $_POST['position_roles_other'];
+        } else {
+            $position_roles = '';
+        }
+        
+        // Process drug types - combine multiple checkboxes
+        if (isset($_POST['drug_types']) && is_array($_POST['drug_types'])) {
+            $drug_types = implode(', ', $_POST['drug_types']);
+        } elseif (isset($_POST['drug_types_other']) && !empty($_POST['drug_types_other'])) {
+            $drug_types = $_POST['drug_types_other'];
+        } else {
+            $drug_types = '';
+        }
         
         // Update main profile
         $query = "UPDATE biographical_profiles SET
@@ -117,7 +172,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             ':full_name' => $_POST['full_name'],
             ':alias' => $_POST['alias'],
             ':group_affiliation' => $_POST['group_affiliation'],
-            ':position_roles' => $_POST['position_roles'],
+            ':position_roles' => $position_roles,
             ':age' => $_POST['age'],
             ':sex' => $_POST['sex'],
             ':dob' => $_POST['dob'],
@@ -147,7 +202,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             ':arrest_place' => $_POST['arrest_place'],
             ':arresting_officer' => $_POST['arresting_officer'],
             ':arresting_unit' => $_POST['arresting_unit'],
-            ':drugs_involved' => $_POST['drugs_involved'],
+            ':drugs_involved' => $drug_types,
             ':source_relationship' => $_POST['source_relationship'],
             ':source_address' => $_POST['source_address'],
             ':source_name' => $_POST['source_name'],
@@ -225,6 +280,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 // Parse drugs_pushed for checkbox checking
 $drugsPushedArray = !empty($profile['drugs_pushed']) ? explode(', ', $profile['drugs_pushed']) : [];
 
+// Parse drug types for display
+$drugTypesArray = !empty($profile['drugs_involved']) ? explode(', ', $profile['drugs_involved']) : [];
+
+// Parse position roles for display
+$positionRolesArray = !empty($profile['position_roles']) ? explode(', ', $profile['position_roles']) : [];
+
 // Function to check if a drug is in the pushed list
 function isDrugPushed($drug, $drugsPushedArray) {
     return in_array($drug, $drugsPushedArray);
@@ -239,927 +300,1112 @@ function isDrugPushed($drug, $drugsPushedArray) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            background: #f0f2f5;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        
-        .header {
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8fafc;
+            color: #1e293b;
+            line-height: 1.5;
+            padding: 20px;
+        }
+
+        /* Form Container */
+        .form-wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+
+        /* Official PNP Header - Inside Form */
+        .form-pnp-header {
             background: #0a2f4d;
             color: white;
-            padding: 15px 0;
-            border-bottom: 3px solid #c9a959;
-            margin-bottom: 30px;
+            padding: 25px 30px;
+            border-bottom: 4px solid #c9a959;
+            position: relative;
         }
         
-        .form-container {
-            background: white;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            padding: 30px;
-            margin-bottom: 30px;
+        .header-content {
+            text-align: center;
+            position: relative;
         }
         
-        .form-section {
-            background: #f8f9fa;
-            border-left: 4px solid #0a2f4d;
-            padding: 20px;
-            margin-bottom: 30px;
-            border-radius: 0 5px 5px 0;
+        .header-content .dilg {
+            font-size: 14px;
+            font-weight: 300;
+            letter-spacing: 1px;
+            color: #e0e0e0;
+            display: block;
+            margin-bottom: 3px;
         }
         
-        .form-section h4 {
-            color: #0a2f4d;
-            margin-bottom: 20px;
-            font-weight: bold;
+        .header-content .pnp {
+            font-size: 26px;
+            font-weight: 700;
+            color: white;
+            display: block;
+            margin: 3px 0;
+            letter-spacing: 1px;
+        }
+        
+        .header-content .provincial {
+            font-size: 20px;
+            font-weight: 500;
+            color: #c9a959;
+            display: block;
+            margin: 3px 0;
+        }
+        
+        .header-content .station {
             font-size: 18px;
-            text-transform: uppercase;
+            font-weight: 500;
+            color: white;
+            display: block;
+            margin: 3px 0;
         }
         
-        .form-section h4 i {
-            margin-right: 10px;
+        .header-content .address {
+            font-size: 15px;
+            color: #b0c4de;
+            display: block;
+            margin-top: 8px;
+        }
+        
+        .header-content .phone {
+            font-size: 15px;
+            color: #b0c4de;
+            display: block;
+            margin-top: 2px;
+        }
+        
+        .header-content .phone i {
+            color: #c9a959;
+            margin-right: 5px;
+        }
+
+        .user-info-header {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: rgba(255,255,255,0.1);
+            padding: 8px 20px;
+            border-radius: 40px;
+        }
+
+        .user-info-header i {
             color: #c9a959;
         }
-        
-        .form-label {
-            font-weight: 600;
-            color: #333;
+
+        .user-info-header span {
             font-size: 14px;
+            font-weight: 500;
         }
-        
-        .form-control, .form-select {
-            border: 1px solid #ced4da;
-            border-radius: 3px;
-            padding: 8px 12px;
+
+        /* Form Content */
+        .form-content {
+            padding: 30px;
         }
-        
-        .form-control:focus, .form-select:focus {
-            border-color: #0a2f4d;
-            box-shadow: 0 0 0 0.2rem rgba(10,47,77,0.25);
+
+        .form-title {
+            text-align: center;
+            margin-bottom: 30px;
         }
-        
-        .btn-pnp {
+
+        .form-title h2 {
+            font-size: 28px;
+            font-weight: 600;
+            color: #0f172a;
+            letter-spacing: -0.02em;
+        }
+
+        .form-title p {
+            color: #64748b;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+
+          /* Profile Picture Section */
+        .profile-picture-section {
+            display: flex;
+            margin-left: 900px;
+            margin-bottom: 20px;
+        }
+
+        .picture-container {
+            width: 150px;
+            text-align: center;
+        }
+
+        .picture-box {
+            width: 200px;
+            height: 200px;
+            background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+            border: 3px solid #0a2f4d;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 5px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .picture-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .picture-box i {
+            font-size: 50px;
+            color: #94a3b8;
+            margin-bottom: 5px;
+        }
+
+        .picture-box span {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .btn-upload {
             background: #0a2f4d;
             color: white;
             border: none;
-            padding: 10px 30px;
-            border-radius: 3px;
-            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-left: 25px;
+            transition: all 0.2s;
+            width: 100%;
         }
-        
-        .btn-pnp:hover {
+
+        .btn-upload:hover {
             background: #c9a959;
             color: #0a2f4d;
         }
-        
-        .btn-secondary {
-            background: #6c757d;
-            border: none;
-            padding: 10px 30px;
+
+        .file-input {
+            display: none;
         }
-        
-        .btn-warning {
-            background: #ffc107;
-            border: none;
-            padding: 10px 30px;
-            color: #333;
+
+        /* Form Section */
+        .form-section {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 28px;
+            margin-bottom: 28px;
         }
-        
-        .btn-danger {
-            background: #dc3545;
-            border: none;
-            padding: 10px 30px;
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #e2e8f0;
         }
-        
-        .table-bordered {
-            border: 1px solid #dee2e6;
+
+        .section-header i {
+            font-size: 20px;
+            color: #94a3b8;
         }
-        
-        .table-bordered th {
-            background: #0a2f4d;
-            color: white;
-            font-size: 14px;
+
+        .section-header h4 {
+            font-size: 18px;
             font-weight: 600;
-            text-align: center;
-            vertical-align: middle;
+            color: #0f172a;
+            margin: 0;
+            letter-spacing: -0.01em;
         }
-        
-        .table-bordered td {
-            vertical-align: middle;
-        }
-        
-        .note {
-            background: #fff3cd;
-            border-left: 4px solid #ffc107;
-            padding: 10px 15px;
-            font-size: 13px;
-            margin-top: 10px;
-        }
-        
-        .footer {
-            background: white;
-            padding: 15px 0;
-            margin-top: 30px;
-            border-top: 1px solid #ddd;
-            font-size: 12px;
-            color: #666;
-            text-align: center;
-        }
-        
-        .action-buttons {
-            text-align: center;
-            margin-top: 30px;
-        }
-        
-        .action-buttons .btn {
-            margin: 0 5px;
-        }
-        
+
         .profile-id-badge {
             background: #0a2f4d;
             color: white;
-            padding: 5px 10px;
-            border-radius: 3px;
+            padding: 8px 16px;
+            border-radius: 30px;
             font-size: 14px;
             display: inline-block;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
-        
+
+        .profile-id-badge i {
+            margin-right: 5px;
+            color: #c9a959;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .form-field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-field.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-field label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+
+        .form-control, .form-select {
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 14px;
+            color: #1e293b;
+            background: #ffffff;
+            transition: all 0.15s;
+            width: 100%;
+        }
+
+        .form-control:focus, .form-select:focus {
+            outline: none;
+            border-color: #94a3b8;
+            box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.1);
+        }
+
+        .checkbox-container {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-top: 8px;
+        }
+
+        .form-check {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-check-input {
+            width: 16px;
+            height: 16px;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .form-check-input:checked {
+            background-color: #0f172a;
+            border-color: #0f172a;
+        }
+
+        .form-check-label {
+            font-size: 14px;
+            color: #334155;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin-top: 16px;
+        }
+
+        .minimal-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .minimal-table th {
+            text-align: left;
+            padding: 12px 16px;
+            background: #f8fafc;
+            color: #475569;
+            font-weight: 500;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .minimal-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .minimal-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-top: 40px;
+            padding: 20px 0;
+        }
+
+        .btn-primary {
+            background: #0f172a;
+            color: white;
+            border: none;
+            padding: 12px 32px;
+            border-radius: 40px;
+            font-size: 14px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .btn-primary:hover {
+            background: #1e293b;
+        }
+
+        .btn-secondary {
+            background: #f1f5f9;
+            color: #334155;
+            border: 1px solid #e2e8f0;
+            padding: 12px 32px;
+            border-radius: 40px;
+            font-size: 14px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .btn-secondary:hover {
+            background: #e2e8f0;
+        }
+
+        .btn-info {
+            background: #0891b2;
+            color: white;
+            border: none;
+            padding: 12px 32px;
+            border-radius: 40px;
+            font-size: 14px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .btn-info:hover {
+            background: #0e7490;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 30px;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 30px;
+            font-size: 12px;
+        }
+
+        .alert {
+            background: #f8fafc;
+            border-left: 4px solid #0f172a;
+            padding: 16px 20px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .alert-success {
+            border-left-color: #10b981;
+            background: #f0fdf4;
+        }
+
+        .alert-danger {
+            border-left-color: #ef4444;
+            background: #fef2f2;
+        }
+
+        .site-footer {
+            text-align: center;
+            padding: 24px 0;
+            border-top: 1px solid #e2e8f0;
+            color: #64748b;
+            font-size: 12px;
+            margin-top: 20px;
+        }
+
         .drug-checkbox-group {
-            border: 1px solid #dee2e6;
+            border: 1px solid #e2e8f0;
             padding: 15px;
-            border-radius: 5px;
+            border-radius: 10px;
             background: white;
         }
-        
-        .form-check-inline {
-            margin-right: 20px;
+
+        @media (max-width: 768px) {
+            .form-actions {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .user-info-header {
+                position: relative;
+                top: 0;
+                right: 0;
+                margin-top: 15px;
+                justify-content: center;
+            }
+
+            .profile-picture-section {
+                justify-content: center;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="container">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <i class="fas fa-shield-alt fa-2x me-2"></i>
-                    <span class="h5">PNP Biographical Profiling System</span>
-                    <br><small>Manolo Fortich Police Station</small>
-                </div>
-                <div>
-                    <span class="me-3">
-                        <i class="fas fa-user"></i> <?php echo $_SESSION['rank'] . ' ' . $_SESSION['full_name']; ?>
-                    </span>
-                    <a href="dashboard.php" class="btn btn-outline-light btn-sm">
-                        <i class="fas fa-arrow-left"></i> Back to Dashboard
-                    </a>
+    <div class="form-wrapper">
+        <!-- PNP Header Inside the Form -->
+        <div class="form-pnp-header">
+            <div class="header-content">
+                <span class="dilg">Department of the Interior and Local Government</span>
+                <span class="pnp">PHILIPPINE NATIONAL POLICE</span>
+                <span class="provincial">BUKIDNON POLICE PROVINCIAL OFFICE</span>
+                <span class="station">MANOLO FORTICH POLICE STATION</span>
+                <span class="address">Manolo Fortich, Bukidnon, 8703</span>
+                <span class="phone"><i class="fas fa-phone"></i> (088-228) 2244</span>
+                
+                <div class="user-info-header">
+                    <i class="fas fa-user-shield"></i>
+                    <span><?php echo $_SESSION['rank'] . ' ' . $_SESSION['full_name']; ?></span>
                 </div>
             </div>
         </div>
-    </div>
 
-    <div class="container">
-        <?php if ($message): ?>
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <i class="fas fa-check-circle"></i> <?php echo $message; ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        <?php endif; ?>
-        
-        <?php if ($error): ?>
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <i class="fas fa-exclamation-circle"></i> <?php echo $error; ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        <?php endif; ?>
-        
-        <div class="form-container">
+        <!-- Form Content -->
+        <div class="form-content">
+            <?php if ($message): ?>
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i>
+                    <span><?php echo $message; ?></span>
+                </div>
+            <?php endif; ?>
+            
+            <?php if ($error): ?>
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span><?php echo $error; ?></span>
+                </div>
+            <?php endif; ?>
+            
             <div class="text-center mb-4">
                 <span class="profile-id-badge">
                     <i class="fas fa-id-card"></i> Editing Profile ID: #<?php echo str_pad($profile['id'], 6, '0', STR_PAD_LEFT); ?>
                 </span>
-                <h3 style="color: #0a2f4d; font-weight: bold;">EDIT BIOGRAPHICAL PROFILE</h3>
-                <p class="text-muted">Update the information below and click Save Changes</p>
+            </div>
+
+            <!-- Profile Picture Section (Upper Right) -->
+            <div class="profile-picture-section">
+                <div class="picture-container">
+                    <div class="picture-box" id="picturePreview">
+                        <?php if (!empty($profile['profile_picture'])): ?>
+                            <img src="<?php echo $profile['profile_picture']; ?>" alt="Profile Picture">
+                        <?php else: ?>
+                            <i class="fas fa-user-circle"></i>
+                            <span>2x2 Photo</span>
+                        <?php endif; ?>
+                    </div>
+                    <form method="POST" enctype="multipart/form-data" id="pictureForm">
+                        <input type="file" name="profile_picture" id="profilePicture" class="file-input" accept="image/*">
+                        <button type="button" class="btn-upload" onclick="document.getElementById('profilePicture').click();">
+                            <i class="fas fa-camera"></i> Upload Picture
+                        </button>
+                    </form>
+                </div>
             </div>
             
             <form method="POST" action="" id="profileForm">
                 <!-- I. Personal Data -->
-                <div class="form-section">
-                    <h4><i class="fas fa-user"></i> I. PERSONAL DATA</h4>
+                <section class="form-section">
+                    <div class="section-header">
+                        <i class="fas fa-user"></i>
+                        <h4>I. Personal Data</h4>
+                    </div>
                     
-                    <div class="row mb-3">
-                        <div class="col-md-12">
-                            <table class="table table-bordered">
-                                <tr>
-                                    <th style="width: 200px;">Full Name:</th>
-                                    <td>
-                                        <input type="text" class="form-control" name="full_name" required 
-                                               value="<?php echo htmlspecialchars($profile['full_name']); ?>">
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Alias:</th>
-                                    <td>
-                                        <input type="text" class="form-control" name="alias" 
-                                               value="<?php echo htmlspecialchars($profile['alias']); ?>">
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Group/Gang Affiliation:</th>
-                                    <td>
-                                        <input type="text" class="form-control" name="group_affiliation"
-                                               value="<?php echo htmlspecialchars($profile['group_affiliation']); ?>">
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Position/Role:</th>
-                                    <td>
-                                        <input type="text" class="form-control" name="position_roles"
-                                               value="<?php echo htmlspecialchars($profile['position_roles']); ?>">
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Age:</th>
-                                    <td>
-                                        <input type="number" class="form-control" name="age" required
-                                               value="<?php echo $profile['age']; ?>">
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Sex:</th>
-                                    <td>
-                                        <select class="form-select" name="sex" required>
-                                            <option value="">Select Sex</option>
-                                            <option value="Male" <?php echo $profile['sex'] == 'Male' ? 'selected' : ''; ?>>Male</option>
-                                            <option value="Female" <?php echo $profile['sex'] == 'Female' ? 'selected' : ''; ?>>Female</option>
-                                            <option value="Other" <?php echo $profile['sex'] == 'Other' ? 'selected' : ''; ?>>Other</option>
-                                        </select>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Date of Birth:</th>
-                                    <td>
-                                        <input type="date" class="form-control" name="dob" required
-                                               value="<?php echo $profile['dob']; ?>">
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Place of Birth:</th>
-                                    <td>
-                                        <input type="text" class="form-control" name="pob" required
-                                               value="<?php echo htmlspecialchars($profile['pob']); ?>">
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Educational Attainment:</th>
-                                    <td>
-                                        <select class="form-select" name="educational_attainment">
-                                            <option value="">Select</option>
-                                            <option value="Elementary Level" <?php echo $profile['educational_attainment'] == 'Elementary Level' ? 'selected' : ''; ?>>Elementary Level</option>
-                                            <option value="Elementary Graduate" <?php echo $profile['educational_attainment'] == 'Elementary Graduate' ? 'selected' : ''; ?>>Elementary Graduate</option>
-                                            <option value="High School Level" <?php echo $profile['educational_attainment'] == 'High School Level' ? 'selected' : ''; ?>>High School Level</option>
-                                            <option value="High School Graduate" <?php echo $profile['educational_attainment'] == 'High School Graduate' ? 'selected' : ''; ?>>High School Graduate</option>
-                                            <option value="College Level" <?php echo $profile['educational_attainment'] == 'College Level' ? 'selected' : ''; ?>>College Level</option>
-                                            <option value="College Graduate" <?php echo $profile['educational_attainment'] == 'College Graduate' ? 'selected' : ''; ?>>College Graduate</option>
-                                            <option value="Post Graduate" <?php echo $profile['educational_attainment'] == 'Post Graduate' ? 'selected' : ''; ?>>Post Graduate</option>
-                                            <option value="Vocational" <?php echo $profile['educational_attainment'] == 'Vocational' ? 'selected' : ''; ?>>Vocational</option>
-                                        </select>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Occupation/Profession:</th>
-                                    <td>
-                                        <input type="text" class="form-control" name="occupation"
-                                               value="<?php echo htmlspecialchars($profile['occupation']); ?>">
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Company/Office:</th>
-                                    <td>
-                                        <input type="text" class="form-control" name="company_office"
-                                               value="<?php echo htmlspecialchars($profile['company_office']); ?>">
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Technical Skills:</th>
-                                    <td>
-                                        <input type="text" class="form-control" name="technical_skills"
-                                               value="<?php echo htmlspecialchars($profile['technical_skills']); ?>">
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Ethnic Group:</th>
-                                    <td>
-                                        <input type="text" class="form-control" name="ethnic_group"
-                                               value="<?php echo htmlspecialchars($profile['ethnic_group']); ?>">
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Languages/Dialects:</th>
-                                    <td>
-                                        <input type="text" class="form-control" name="languages"
-                                               value="<?php echo htmlspecialchars($profile['languages']); ?>">
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Present Address:</th>
-                                    <td>
-                                        <input type="text" class="form-control" name="present_address"
-                                               value="<?php echo htmlspecialchars($profile['present_address']); ?>">
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Provincial Address:</th>
-                                    <td>
-                                        <input type="text" class="form-control" name="provincial_address"
-                                               value="<?php echo htmlspecialchars($profile['provincial_address']); ?>">
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Civil Status:</th>
-                                    <td>
-                                        <select class="form-select" name="civil_status">
-                                            <option value="">Select</option>
-                                            <option value="Single" <?php echo $profile['civil_status'] == 'Single' ? 'selected' : ''; ?>>Single</option>
-                                            <option value="Married" <?php echo $profile['civil_status'] == 'Married' ? 'selected' : ''; ?>>Married</option>
-                                            <option value="Widowed" <?php echo $profile['civil_status'] == 'Widowed' ? 'selected' : ''; ?>>Widowed</option>
-                                            <option value="Separated" <?php echo $profile['civil_status'] == 'Separated' ? 'selected' : ''; ?>>Separated</option>
-                                            <option value="Divorced" <?php echo $profile['civil_status'] == 'Divorced' ? 'selected' : ''; ?>>Divorced</option>
-                                        </select>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Citizenship:</th>
-                                    <td>
-                                        <input type="text" class="form-control" name="citizenship"
-                                               value="<?php echo htmlspecialchars($profile['citizenship']); ?>">
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Religion:</th>
-                                    <td>
-                                        <input type="text" class="form-control" name="religion"
-                                               value="<?php echo htmlspecialchars($profile['religion']); ?>">
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Height (ft/in):</th>
-                                    <td>
-                                        <input type="text" class="form-control" name="height_ft" placeholder="e.g., 5'5&quot;"
-                                               value="<?php echo htmlspecialchars($profile['height_ft']); ?>">
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Weight (kg):</th>
-                                    <td>
-                                        <input type="number" step="0.01" class="form-control" name="weight_kg"
-                                               value="<?php echo $profile['weight_kg']; ?>">
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Eyes Color:</th>
-                                    <td>
-                                        <input type="text" class="form-control" name="eyes_color"
-                                               value="<?php echo htmlspecialchars($profile['eyes_color']); ?>">
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Hair Color:</th>
-                                    <td>
-                                        <input type="text" class="form-control" name="hair_color"
-                                               value="<?php echo htmlspecialchars($profile['hair_color']); ?>">
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Built:</th>
-                                    <td>
-                                        <select class="form-select" name="built">
-                                            <option value="">Select Built</option>
-                                            <option value="Small" <?php echo $profile['built'] == 'Small' ? 'selected' : ''; ?>>Small (130-140 cm)</option>
-                                            <option value="Medium" <?php echo $profile['built'] == 'Medium' ? 'selected' : ''; ?>>Medium (140-150 cm)</option>
-                                            <option value="Large" <?php echo $profile['built'] == 'Large' ? 'selected' : ''; ?>>Large (150+ cm)</option>
-                                        </select>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Complexion:</th>
-                                    <td>
-                                        <input type="text" class="form-control" name="complexion"
-                                               value="<?php echo htmlspecialchars($profile['complexion']); ?>">
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Distinguishing Marks/Tattoo:</th>
-                                    <td>
-                                        <textarea class="form-control" name="distinguishing_marks" rows="2"><?php echo htmlspecialchars($profile['distinguishing_marks']); ?></textarea>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Previous Arrest Record:</th>
-                                    <td>
-                                        <textarea class="form-control" name="previous_arrest" rows="2"><?php echo htmlspecialchars($profile['previous_arrest']); ?></textarea>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Specific Charge:</th>
-                                    <td>
-                                        <input type="text" class="form-control" name="specific_charge"
-                                               value="<?php echo htmlspecialchars($profile['specific_charge']); ?>">
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Date/Time of Arrest:</th>
-                                    <td>
-                                        <input type="datetime-local" class="form-control" name="arrest_datetime"
-                                               value="<?php echo $profile['arrest_datetime']; ?>">
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Place of Arrest:</th>
-                                    <td>
-                                        <input type="text" class="form-control" name="arrest_place"
-                                               value="<?php echo htmlspecialchars($profile['arrest_place']); ?>">
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Arresting Officer:</th>
-                                    <td>
-                                        <input type="text" class="form-control" name="arresting_officer"
-                                               value="<?php echo htmlspecialchars($profile['arresting_officer']); ?>">
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Unit/Office of Arresting Officer:</th>
-                                    <td>
-                                        <input type="text" class="form-control" name="arresting_unit"
-                                               value="<?php echo htmlspecialchars($profile['arresting_unit']); ?>">
-                                    </td>
-                                </tr>
-                            </table>
+                    <div class="form-grid">
+                        <div class="form-field full-width">
+                            <label>Full Name</label>
+                            <input type="text" class="form-control" name="full_name" required 
+                                   value="<?php echo htmlspecialchars($profile['full_name']); ?>">
+                        </div>
+                        
+                        <div class="form-field">
+                            <label>Alias</label>
+                            <input type="text" class="form-control" name="alias" 
+                                   value="<?php echo htmlspecialchars($profile['alias']); ?>">
+                        </div>
+                        
+                        <div class="form-field">
+                            <label>Group/Gang Affiliation</label>
+                            <input type="text" class="form-control" name="group_affiliation"
+                                   value="<?php echo htmlspecialchars($profile['group_affiliation']); ?>">
+                        </div>
+                        
+                        <div class="form-field full-width">
+                            <label>Position/Role</label>
+                            <div class="checkbox-container">
+                                <div class="checkbox-group">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="position_roles[]" value="User" id="posUser"
+                                               <?php echo in_array('User', $positionRolesArray) ? 'checked' : ''; ?>>
+                                        <label class="form-check-label" for="posUser">User</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="position_roles[]" value="Pusher" id="posPusher"
+                                               <?php echo in_array('Pusher', $positionRolesArray) ? 'checked' : ''; ?>>
+                                        <label class="form-check-label" for="posPusher">Pusher</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="position_roles[]" value="Runner" id="posRunner"
+                                               <?php echo in_array('Runner', $positionRolesArray) ? 'checked' : ''; ?>>
+                                        <label class="form-check-label" for="posRunner">Runner</label>
+                                    </div>
+                                </div>
+                                <input type="text" class="form-control" style="margin-top: 12px;" name="position_roles_other" 
+                                       placeholder="Other position/s (separate with commas)"
+                                       value="">
+                            </div>
+                        </div>
+                        
+                        <div class="form-field">
+                            <label>Age</label>
+                            <input type="number" class="form-control" name="age" required
+                                   value="<?php echo $profile['age']; ?>">
+                        </div>
+                        
+                        <div class="form-field">
+                            <label>Sex</label>
+                            <select class="form-select" name="sex" required>
+                                <option value="">Select</option>
+                                <option value="Male" <?php echo $profile['sex'] == 'Male' ? 'selected' : ''; ?>>Male</option>
+                                <option value="Female" <?php echo $profile['sex'] == 'Female' ? 'selected' : ''; ?>>Female</option>
+                                <option value="Other" <?php echo $profile['sex'] == 'Other' ? 'selected' : ''; ?>>Other</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-field">
+                            <label>Date of Birth</label>
+                            <input type="date" class="form-control" name="dob" required
+                                   value="<?php echo $profile['dob']; ?>">
+                        </div>
+                        
+                        <div class="form-field">
+                            <label>Place of Birth</label>
+                            <input type="text" class="form-control" name="pob" required
+                                   value="<?php echo htmlspecialchars($profile['pob']); ?>">
+                        </div>
+                        
+                        <div class="form-field">
+                            <label>Educational Attainment</label>
+                            <select class="form-select" name="educational_attainment">
+                                <option value="">Select</option>
+                                <option value="Elementary Level" <?php echo $profile['educational_attainment'] == 'Elementary Level' ? 'selected' : ''; ?>>Elementary Level</option>
+                                <option value="Elementary Graduate" <?php echo $profile['educational_attainment'] == 'Elementary Graduate' ? 'selected' : ''; ?>>Elementary Graduate</option>
+                                <option value="High School Level" <?php echo $profile['educational_attainment'] == 'High School Level' ? 'selected' : ''; ?>>High School Level</option>
+                                <option value="High School Graduate" <?php echo $profile['educational_attainment'] == 'High School Graduate' ? 'selected' : ''; ?>>High School Graduate</option>
+                                <option value="College Level" <?php echo $profile['educational_attainment'] == 'College Level' ? 'selected' : ''; ?>>College Level</option>
+                                <option value="College Graduate" <?php echo $profile['educational_attainment'] == 'College Graduate' ? 'selected' : ''; ?>>College Graduate</option>
+                                <option value="Post Graduate" <?php echo $profile['educational_attainment'] == 'Post Graduate' ? 'selected' : ''; ?>>Post Graduate</option>
+                                <option value="Vocational" <?php echo $profile['educational_attainment'] == 'Vocational' ? 'selected' : ''; ?>>Vocational</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-field">
+                            <label>Occupation</label>
+                            <input type="text" class="form-control" name="occupation"
+                                   value="<?php echo htmlspecialchars($profile['occupation']); ?>">
+                        </div>
+                        
+                        <div class="form-field">
+                            <label>Company/Office</label>
+                            <input type="text" class="form-control" name="company_office"
+                                   value="<?php echo htmlspecialchars($profile['company_office']); ?>">
+                        </div>
+                        
+                        <div class="form-field full-width">
+                            <label>Present Address</label>
+                            <input type="text" class="form-control" name="present_address"
+                                   value="<?php echo htmlspecialchars($profile['present_address']); ?>">
+                        </div>
+                        
+                        <div class="form-field full-width">
+                            <label>Provincial Address</label>
+                            <input type="text" class="form-control" name="provincial_address"
+                                   value="<?php echo htmlspecialchars($profile['provincial_address']); ?>">
+                        </div>
+                        
+                        <div class="form-field">
+                            <label>Civil Status</label>
+                            <select class="form-select" name="civil_status">
+                                <option value="">Select</option>
+                                <option value="Single" <?php echo $profile['civil_status'] == 'Single' ? 'selected' : ''; ?>>Single</option>
+                                <option value="Married" <?php echo $profile['civil_status'] == 'Married' ? 'selected' : ''; ?>>Married</option>
+                                <option value="Widowed" <?php echo $profile['civil_status'] == 'Widowed' ? 'selected' : ''; ?>>Widowed</option>
+                                <option value="Separated" <?php echo $profile['civil_status'] == 'Separated' ? 'selected' : ''; ?>>Separated</option>
+                                <option value="Divorced" <?php echo $profile['civil_status'] == 'Divorced' ? 'selected' : ''; ?>>Divorced</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-field">
+                            <label>Citizenship</label>
+                            <input type="text" class="form-control" name="citizenship"
+                                   value="<?php echo htmlspecialchars($profile['citizenship']); ?>">
+                        </div>
+                        
+                        <div class="form-field">
+                            <label>Religion</label>
+                            <input type="text" class="form-control" name="religion"
+                                   value="<?php echo htmlspecialchars($profile['religion']); ?>">
+                        </div>
+                        
+                        <div class="form-field">
+                            <label>Height (ft/in)</label>
+                            <input type="text" class="form-control" name="height_ft" placeholder="e.g., 5'5&quot;"
+                                   value="<?php echo htmlspecialchars($profile['height_ft']); ?>">
+                        </div>
+                        
+                        <div class="form-field">
+                            <label>Weight (kg)</label>
+                            <input type="number" step="0.01" class="form-control" name="weight_kg"
+                                   value="<?php echo $profile['weight_kg']; ?>">
+                        </div>
+                        
+                        <div class="form-field">
+                            <label>Eyes Color</label>
+                            <input type="text" class="form-control" name="eyes_color"
+                                   value="<?php echo htmlspecialchars($profile['eyes_color']); ?>">
+                        </div>
+                        
+                        <div class="form-field">
+                            <label>Hair Color</label>
+                            <input type="text" class="form-control" name="hair_color"
+                                   value="<?php echo htmlspecialchars($profile['hair_color']); ?>">
+                        </div>
+                        
+                        <div class="form-field">
+                            <label>Built</label>
+                            <select class="form-select" name="built">
+                                <option value="">Select</option>
+                                <option value="Small" <?php echo $profile['built'] == 'Small' ? 'selected' : ''; ?>>Small</option>
+                                <option value="Medium" <?php echo $profile['built'] == 'Medium' ? 'selected' : ''; ?>>Medium</option>
+                                <option value="Large" <?php echo $profile['built'] == 'Large' ? 'selected' : ''; ?>>Large</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-field">
+                            <label>Complexion</label>
+                            <input type="text" class="form-control" name="complexion"
+                                   value="<?php echo htmlspecialchars($profile['complexion']); ?>">
+                        </div>
+                        
+                        <div class="form-field full-width">
+                            <label>Distinguishing Marks/Tattoo</label>
+                            <textarea class="form-control" name="distinguishing_marks" rows="2"><?php echo htmlspecialchars($profile['distinguishing_marks']); ?></textarea>
                         </div>
                     </div>
-                </div>
+                </section>
 
                 <!-- II. Family Background -->
-                <div class="form-section">
-                    <h4><i class="fas fa-family"></i> II. FAMILY BACKGROUND</h4>
+                <section class="form-section">
+                    <div class="section-header">
+                        <i class="fas fa-users"></i>
+                        <h4>II. Family Background</h4>
+                    </div>
                     
-                    <h5 class="mt-3 mb-3" style="color: #0a2f4d;">Parents</h5>
-                    <table class="table table-bordered">
-                        <thead>
-                            <tr>
-                                <th></th>
-                                <th>Father</th>
-                                <th>Mother</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <th>Name</th>
-                                <td>
-                                    <input type="text" class="form-control" name="father_name"
-                                           value="<?php echo htmlspecialchars($profile['father_name']); ?>">
-                                </td>
-                                <td>
-                                    <input type="text" class="form-control" name="mother_name"
-                                           value="<?php echo htmlspecialchars($profile['mother_name']); ?>">
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>Address</th>
-                                <td>
-                                    <input type="text" class="form-control" name="father_address"
-                                           value="<?php echo htmlspecialchars($profile['father_address']); ?>">
-                                </td>
-                                <td>
-                                    <input type="text" class="form-control" name="mother_address"
-                                           value="<?php echo htmlspecialchars($profile['mother_address']); ?>">
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>Date of Birth</th>
-                                <td>
-                                    <input type="date" class="form-control" name="father_dob"
-                                           value="<?php echo $profile['father_dob']; ?>">
-                                </td>
-                                <td>
-                                    <input type="date" class="form-control" name="mother_dob"
-                                           value="<?php echo $profile['mother_dob']; ?>">
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>Place of Birth</th>
-                                <td>
-                                    <input type="text" class="form-control" name="father_pob"
-                                           value="<?php echo htmlspecialchars($profile['father_pob']); ?>">
-                                </td>
-                                <td>
-                                    <input type="text" class="form-control" name="mother_pob"
-                                           value="<?php echo htmlspecialchars($profile['mother_pob']); ?>">
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>Age</th>
-                                <td>
-                                    <input type="number" class="form-control" name="father_age"
-                                           value="<?php echo $profile['father_age']; ?>">
-                                </td>
-                                <td>
-                                    <input type="number" class="form-control" name="mother_age"
-                                           value="<?php echo $profile['mother_age']; ?>">
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>Occupation</th>
-                                <td>
-                                    <input type="text" class="form-control" name="father_occupation"
-                                           value="<?php echo htmlspecialchars($profile['father_occupation']); ?>">
-                                </td>
-                                <td>
-                                    <input type="text" class="form-control" name="mother_occupation"
-                                           value="<?php echo htmlspecialchars($profile['mother_occupation']); ?>">
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <h5 style="margin: 20px 0 12px; font-weight: 500; color: #475569;">Parents</h5>
+                    <div class="table-container">
+                        <table class="minimal-table">
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    <th>Father</th>
+                                    <th>Mother</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Name</strong></td>
+                                    <td><input type="text" class="form-control" name="father_name" value="<?php echo htmlspecialchars($profile['father_name']); ?>"></td>
+                                    <td><input type="text" class="form-control" name="mother_name" value="<?php echo htmlspecialchars($profile['mother_name']); ?>"></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Address</strong></td>
+                                    <td><input type="text" class="form-control" name="father_address" value="<?php echo htmlspecialchars($profile['father_address']); ?>"></td>
+                                    <td><input type="text" class="form-control" name="mother_address" value="<?php echo htmlspecialchars($profile['mother_address']); ?>"></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Date of Birth</strong></td>
+                                    <td><input type="date" class="form-control" name="father_dob" value="<?php echo $profile['father_dob']; ?>"></td>
+                                    <td><input type="date" class="form-control" name="mother_dob" value="<?php echo $profile['mother_dob']; ?>"></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Place of Birth</strong></td>
+                                    <td><input type="text" class="form-control" name="father_pob" value="<?php echo htmlspecialchars($profile['father_pob']); ?>"></td>
+                                    <td><input type="text" class="form-control" name="mother_pob" value="<?php echo htmlspecialchars($profile['mother_pob']); ?>"></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Age</strong></td>
+                                    <td><input type="number" class="form-control" name="father_age" value="<?php echo $profile['father_age']; ?>"></td>
+                                    <td><input type="number" class="form-control" name="mother_age" value="<?php echo $profile['mother_age']; ?>"></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Occupation</strong></td>
+                                    <td><input type="text" class="form-control" name="father_occupation" value="<?php echo htmlspecialchars($profile['father_occupation']); ?>"></td>
+                                    <td><input type="text" class="form-control" name="mother_occupation" value="<?php echo htmlspecialchars($profile['mother_occupation']); ?>"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                     
-                    <h5 class="mt-4 mb-3" style="color: #0a2f4d;">Spouse</h5>
-                    <table class="table table-bordered">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Age</th>
-                                <th>Occupation</th>
-                                <th>Address</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>
-                                    <input type="text" class="form-control" name="spouse_name"
-                                           value="<?php echo htmlspecialchars($profile['spouse_name']); ?>">
-                                </td>
-                                <td>
-                                    <input type="number" class="form-control" name="spouse_age"
-                                           value="<?php echo $profile['spouse_age']; ?>">
-                                </td>
-                                <td>
-                                    <input type="text" class="form-control" name="spouse_occupation"
-                                           value="<?php echo htmlspecialchars($profile['spouse_occupation']); ?>">
-                                </td>
-                                <td>
-                                    <input type="text" class="form-control" name="spouse_address"
-                                           value="<?php echo htmlspecialchars($profile['spouse_address']); ?>">
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    
-                    <h5 class="mt-4 mb-3" style="color: #0a2f4d;">Siblings</h5>
-                    <div id="siblingsContainer">
-                        <table class="table table-bordered" id="siblingsTable">
+                    <h5 style="margin: 30px 0 12px; font-weight: 500; color: #475569;">Spouse</h5>
+                    <div class="table-container">
+                        <table class="minimal-table">
                             <thead>
                                 <tr>
                                     <th>Name</th>
                                     <th>Age</th>
                                     <th>Occupation</th>
-                                    <th>Status</th>
                                     <th>Address</th>
-                                    <th>Action</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php if (count($siblings) > 0): ?>
-                                    <?php foreach ($siblings as $index => $sibling): ?>
-                                    <tr>
-                                        <td>
-                                            <input type="text" class="form-control" name="sibling_name[]" 
-                                                   value="<?php echo htmlspecialchars($sibling['name']); ?>">
-                                        </td>
-                                        <td>
-                                            <input type="number" class="form-control" name="sibling_age[]" 
-                                                   value="<?php echo $sibling['age']; ?>">
-                                        </td>
-                                        <td>
-                                            <input type="text" class="form-control" name="sibling_occupation[]" 
-                                                   value="<?php echo htmlspecialchars($sibling['occupation']); ?>">
-                                        </td>
-                                        <td>
-                                            <input type="text" class="form-control" name="sibling_status[]" 
-                                                   value="<?php echo htmlspecialchars($sibling['status']); ?>">
-                                        </td>
-                                        <td>
-                                            <input type="text" class="form-control" name="sibling_address[]" 
-                                                   value="<?php echo htmlspecialchars($sibling['address']); ?>">
-                                        </td>
-                                        <td>
-                                            <button type="button" class="btn btn-danger btn-sm" onclick="removeRow(this)">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                    <?php endforeach; ?>
-                                <?php else: ?>
-                                    <tr>
-                                        <td>
-                                            <input type="text" class="form-control" name="sibling_name[]">
-                                        </td>
-                                        <td>
-                                            <input type="number" class="form-control" name="sibling_age[]">
-                                        </td>
-                                        <td>
-                                            <input type="text" class="form-control" name="sibling_occupation[]">
-                                        </td>
-                                        <td>
-                                            <input type="text" class="form-control" name="sibling_status[]">
-                                        </td>
-                                        <td>
-                                            <input type="text" class="form-control" name="sibling_address[]">
-                                        </td>
-                                        <td>
-                                            <button type="button" class="btn btn-danger btn-sm" onclick="removeRow(this)">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                <?php endif; ?>
+                                <tr>
+                                    <td><input type="text" class="form-control" name="spouse_name" value="<?php echo htmlspecialchars($profile['spouse_name']); ?>"></td>
+                                    <td><input type="number" class="form-control" name="spouse_age" value="<?php echo $profile['spouse_age']; ?>"></td>
+                                    <td><input type="text" class="form-control" name="spouse_occupation" value="<?php echo htmlspecialchars($profile['spouse_occupation']); ?>"></td>
+                                    <td><input type="text" class="form-control" name="spouse_address" value="<?php echo htmlspecialchars($profile['spouse_address']); ?>"></td>
+                                </tr>
                             </tbody>
                         </table>
-                        <button type="button" class="btn btn-sm btn-success" onclick="addSiblingRow()">
+                    </div>
+                    
+                    <h5 style="margin: 30px 0 12px; font-weight: 500; color: #475569;">Siblings</h5>
+                    <div id="siblingsContainer">
+                        <div class="table-container">
+                            <table class="minimal-table" id="siblingsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Age</th>
+                                        <th>Occupation</th>
+                                        <th>Status</th>
+                                        <th>Address</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php if (count($siblings) > 0): ?>
+                                        <?php foreach ($siblings as $sibling): ?>
+                                        <tr>
+                                            <td><input type="text" class="form-control" name="sibling_name[]" value="<?php echo htmlspecialchars($sibling['name']); ?>"></td>
+                                            <td><input type="number" class="form-control" name="sibling_age[]" value="<?php echo $sibling['age']; ?>"></td>
+                                            <td><input type="text" class="form-control" name="sibling_occupation[]" value="<?php echo htmlspecialchars($sibling['occupation']); ?>"></td>
+                                            <td><input type="text" class="form-control" name="sibling_status[]" value="<?php echo htmlspecialchars($sibling['status']); ?>"></td>
+                                            <td><input type="text" class="form-control" name="sibling_address[]" value="<?php echo htmlspecialchars($sibling['address']); ?>"></td>
+                                            <td><button type="button" class="btn-danger btn-sm" onclick="removeRow(this)"><i class="fas fa-trash"></i></button></td>
+                                        </tr>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <tr>
+                                            <td><input type="text" class="form-control" name="sibling_name[]"></td>
+                                            <td><input type="number" class="form-control" name="sibling_age[]"></td>
+                                            <td><input type="text" class="form-control" name="sibling_occupation[]"></td>
+                                            <td><input type="text" class="form-control" name="sibling_status[]"></td>
+                                            <td><input type="text" class="form-control" name="sibling_address[]"></td>
+                                            <td><button type="button" class="btn-danger btn-sm" onclick="removeRow(this)"><i class="fas fa-trash"></i></button></td>
+                                        </tr>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                        <button type="button" class="btn-secondary btn-sm" style="margin-top: 12px;" onclick="addSiblingRow()">
                             <i class="fas fa-plus"></i> Add Sibling
                         </button>
                     </div>
-                </div>
-
+                </section>
+                
                 <!-- III. Tactical Information -->
-                <div class="form-section">
-                    <h4><i class="fas fa-info-circle"></i> III. TACTICAL INFORMATION</h4>
+                <section class="form-section">
+                    <div class="section-header">
+                        <i class="fas fa-info-circle"></i>
+                        <h4>III. Tactical Information</h4>
+                    </div>
                     
-                    <table class="table table-bordered">
-                        <tr>
-                            <th style="width: 250px;">Drugs Involved:</th>
-                            <td>
-                                <input type="text" class="form-control" name="drugs_involved" id="drugs_involved"
-                                       value="<?php echo htmlspecialchars($profile['drugs_involved']); ?>">
-                                <small class="text-muted">Separate multiple drugs with commas</small>
-                            </td>
-                        </tr>
+                    <div class="form-grid">
+                        <div class="form-field full-width">
+                            <label>Drugs Involved</label>
+                            <input type="text" class="form-control" name="drugs_involved" 
+                                   placeholder="Separate multiple drugs with commas"
+                                   value="<?php echo htmlspecialchars($profile['drugs_involved']); ?>">
+                        </div>
                         
-                        <tr>
-                            <th>Relationship to Source:</th>
-                            <td>
-                                <input type="text" class="form-control" name="source_relationship" 
-                                       placeholder="e.g., Friend, Relative, Acquaintance"
-                                       value="<?php echo htmlspecialchars($profile['source_relationship']); ?>">
-                            </td>
-                        </tr>
+                        <div class="form-field">
+                            <label>Relationship to Source</label>
+                            <input type="text" class="form-control" name="source_relationship" 
+                                   value="<?php echo htmlspecialchars($profile['source_relationship']); ?>">
+                        </div>
                         
-                        <tr>
-                            <th>Source Address:</th>
-                            <td>
-                                <input type="text" class="form-control" name="source_address" 
-                                       placeholder="Address of source"
-                                       value="<?php echo htmlspecialchars($profile['source_address']); ?>">
-                            </td>
-                        </tr>
+                        <div class="form-field">
+                            <label>Source Address</label>
+                            <input type="text" class="form-control" name="source_address" 
+                                   value="<?php echo htmlspecialchars($profile['source_address']); ?>">
+                        </div>
                         
-                        <tr>
-                            <th>Source Name:</th>
-                            <td>
-                                <input type="text" class="form-control" name="source_name" 
-                                       placeholder="Full name of source"
-                                       value="<?php echo htmlspecialchars($profile['source_name']); ?>">
-                            </td>
-                        </tr>
+                        <div class="form-field">
+                            <label>Source Name</label>
+                            <input type="text" class="form-control" name="source_name" 
+                                   value="<?php echo htmlspecialchars($profile['source_name']); ?>">
+                        </div>
                         
-                        <tr>
-                            <th>Source Alias/Nickname:</th>
-                            <td>
-                                <input type="text" class="form-control" name="source_nickname" 
-                                       placeholder="Alias of source"
-                                       value="<?php echo htmlspecialchars($profile['source_nickname']); ?>">
-                            </td>
-                        </tr>
+                        <div class="form-field">
+                            <label>Source Alias</label>
+                            <input type="text" class="form-control" name="source_nickname" 
+                                   value="<?php echo htmlspecialchars($profile['source_nickname']); ?>">
+                        </div>
                         
-                        <tr>
-                            <th>Complete Address of Alleged Source:</th>
-                            <td>
-                                <textarea class="form-control" name="source_full_address" rows="2"><?php echo htmlspecialchars($profile['source_full_address']); ?></textarea>
-                            </td>
-                        </tr>
+                        <div class="form-field full-width">
+                            <label>Complete Address of Alleged Source</label>
+                            <textarea class="form-control" name="source_full_address" rows="2"><?php echo htmlspecialchars($profile['source_full_address']); ?></textarea>
+                        </div>
                         
-                        <tr>
-                            <th>Other Types of Drugs Supplied by Source:</th>
-                            <td>
-                                <input type="text" class="form-control" name="source_other_drugs" 
-                                       placeholder="e.g., Shabu, Marijuana, etc."
-                                       value="<?php echo htmlspecialchars($profile['source_other_drugs']); ?>">
-                            </td>
-                        </tr>
+                        <div class="form-field">
+                            <label>Other Drugs Supplied by Source</label>
+                            <input type="text" class="form-control" name="source_other_drugs" 
+                                   value="<?php echo htmlspecialchars($profile['source_other_drugs']); ?>">
+                        </div>
                         
-                        <tr>
-                            <th>Subgroup Name:</th>
-                            <td>
-                                <input type="text" class="form-control" name="subgroup_name" 
-                                       placeholder="Subgroup name"
-                                       value="<?php echo htmlspecialchars($profile['subgroup_name']); ?>">
-                            </td>
-                        </tr>
+                        <div class="form-field">
+                            <label>Subgroup Name</label>
+                            <input type="text" class="form-control" name="subgroup_name" 
+                                   value="<?php echo htmlspecialchars($profile['subgroup_name']); ?>">
+                        </div>
                         
-                        <tr>
-                            <th>Specific Area of Responsibility (AOR):</th>
-                            <td>
-                                <input type="text" class="form-control" name="specific_aor" 
-                                       placeholder="Area of responsibility"
-                                       value="<?php echo htmlspecialchars($profile['specific_aor']); ?>">
-                            </td>
-                        </tr>
+                        <div class="form-field">
+                            <label>Area of Responsibility (AOR)</label>
+                            <input type="text" class="form-control" name="specific_aor" 
+                                   value="<?php echo htmlspecialchars($profile['specific_aor']); ?>">
+                        </div>
                         
-                        <tr>
-                            <th>Other Subject Known as Source:</th>
-                            <td>
-                                <div class="row mb-2">
-                                    <div class="col-md-6">
-                                        <input type="text" class="form-control" name="other_source_name" 
-                                               placeholder="Name of other source"
-                                               value="<?php echo htmlspecialchars($profile['other_source_name']); ?>">
+                        <div class="form-field full-width">
+                            <label>Types of Drugs Pushed by Subject</label>
+                            <div class="checkbox-container">
+                                <div class="checkbox-group">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="drugs_pushed[]" value="Shabu" id="drugShabu"
+                                               <?php echo isDrugPushed('Shabu', $drugsPushedArray) ? 'checked' : ''; ?>>
+                                        <label class="form-check-label" for="drugShabu">Shabu</label>
                                     </div>
-                                    <div class="col-md-6">
-                                        <input type="text" class="form-control" name="other_source_alias" 
-                                               placeholder="Alias"
-                                               value="<?php echo htmlspecialchars($profile['other_source_alias']); ?>">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="drugs_pushed[]" value="Marijuana" id="drugMarijuana"
+                                               <?php echo isDrugPushed('Marijuana', $drugsPushedArray) ? 'checked' : ''; ?>>
+                                        <label class="form-check-label" for="drugMarijuana">Marijuana</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="drugs_pushed[]" value="Ecstasy" id="drugEcstasy"
+                                               <?php echo isDrugPushed('Ecstasy', $drugsPushedArray) ? 'checked' : ''; ?>>
+                                        <label class="form-check-label" for="drugEcstasy">Ecstasy</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="drugs_pushed[]" value="Cocaine" id="drugCocaine"
+                                               <?php echo isDrugPushed('Cocaine', $drugsPushedArray) ? 'checked' : ''; ?>>
+                                        <label class="form-check-label" for="drugCocaine">Cocaine</label>
                                     </div>
                                 </div>
-                                <textarea class="form-control mt-2" name="other_source_details" rows="2" 
-                                          placeholder="Additional details about other source"><?php echo htmlspecialchars($profile['other_source_details']); ?></textarea>
-                            </td>
-                        </tr>
+                                <input type="text" class="form-control" style="margin-top: 12px;" name="other_drugs_pushed" 
+                                       placeholder="Other drugs not listed above"
+                                       value="<?php echo htmlspecialchars($profile['other_drugs_pushed']); ?>">
+                            </div>
+                        </div>
                         
-                        <tr>
-                            <th>Types of Drugs Pushed by Subject:</th>
-                            <td>
-                                <div class="drug-checkbox-group">
-                                    <div class="row">
-                                        <div class="col-md-12">
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="checkbox" name="drugs_pushed[]" value="Shabu" 
-                                                       <?php echo isDrugPushed('Shabu', $drugsPushedArray) ? 'checked' : ''; ?>>
-                                                <label class="form-check-label">Shabu</label>
-                                            </div>
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="checkbox" name="drugs_pushed[]" value="Marijuana"
-                                                       <?php echo isDrugPushed('Marijuana', $drugsPushedArray) ? 'checked' : ''; ?>>
-                                                <label class="form-check-label">Marijuana</label>
-                                            </div>
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="checkbox" name="drugs_pushed[]" value="Ecstasy"
-                                                       <?php echo isDrugPushed('Ecstasy', $drugsPushedArray) ? 'checked' : ''; ?>>
-                                                <label class="form-check-label">Ecstasy</label>
-                                            </div>
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="checkbox" name="drugs_pushed[]" value="Cocaine"
-                                                       <?php echo isDrugPushed('Cocaine', $drugsPushedArray) ? 'checked' : ''; ?>>
-                                                <label class="form-check-label">Cocaine</label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="row mt-2">
-                                        <div class="col-md-12">
-                                            <input type="text" class="form-control" name="other_drugs_pushed" 
-                                                   placeholder="Other drugs not listed above"
-                                                   value="<?php echo htmlspecialchars($profile['other_drugs_pushed']); ?>">
-                                        </div>
-                                    </div>
-                                </div>
-                                <small class="text-muted">Check all that apply or specify other drugs</small>
-                            </td>
-                        </tr>
+                        <div class="form-field">
+                            <label>Vehicles Used</label>
+                            <input type="text" class="form-control" name="vehicles_used"
+                                   value="<?php echo htmlspecialchars($profile['vehicles_used']); ?>">
+                        </div>
                         
-                        <tr>
-                            <th>Vehicles Used:</th>
-                            <td>
-                                <input type="text" class="form-control" name="vehicles_used"
-                                       placeholder="e.g., Motorcycle, Toyota Vios (ABC-123)"
-                                       value="<?php echo htmlspecialchars($profile['vehicles_used']); ?>">
-                            </td>
-                        </tr>
+                        <div class="form-field">
+                            <label>Armaments</label>
+                            <input type="text" class="form-control" name="armaments"
+                                   value="<?php echo htmlspecialchars($profile['armaments']); ?>">
+                        </div>
                         
-                        <tr>
-                            <th>Armaments:</th>
-                            <td>
-                                <input type="text" class="form-control" name="armaments"
-                                       placeholder="e.g., .45 caliber pistol, Revolver"
-                                       value="<?php echo htmlspecialchars($profile['armaments']); ?>">
-                            </td>
-                        </tr>
-                        
-                        <tr>
-                            <th>Companions During Arrest:</th>
-                            <td>
-                                <textarea class="form-control" name="companions_arrest" rows="2" 
-                                          placeholder="Names of companions during arrest"><?php echo htmlspecialchars($profile['companions_arrest']); ?></textarea>
-                            </td>
-                        </tr>
-                    </table>
-                </div>
+                        <div class="form-field full-width">
+                            <label>Companions During Arrest</label>
+                            <textarea class="form-control" name="companions_arrest" rows="2"><?php echo htmlspecialchars($profile['companions_arrest']); ?></textarea>
+                        </div>
+                    </div>
+                </section>
 
                 <!-- IV. Recruitment Summary -->
-                <div class="form-section">
-                    <h4><i class="fas fa-user-plus"></i> IV. DETAILED SUMMARY ON RECRUITMENT</h4>
-                    <div class="mb-3">
-                        <label class="form-label">Recruitment Details:</label>
-                        <textarea class="form-control" name="recruitment_summary" rows="4"><?php echo htmlspecialchars($profile['recruitment_summary']); ?></textarea>
-                        <small class="text-muted">Describe how the suspect was recruited as user/pusher/drugs influence by friends</small>
+                <section class="form-section">
+                    <div class="section-header">
+                        <i class="fas fa-user-plus"></i>
+                        <h4>IV. Recruitment Summary</h4>
                     </div>
-                </div>
+                    <div class="form-field full-width">
+                        <textarea class="form-control" name="recruitment_summary" rows="4"><?php echo htmlspecialchars($profile['recruitment_summary']); ?></textarea>
+                    </div>
+                </section>
 
                 <!-- V. Drug Operations -->
-                <div class="form-section">
-                    <h4><i class="fas fa-exchange-alt"></i> V. SUMMARY OF PUSHING/SUPPLYING/ACQUIRING DRUGS</h4>
-                    <div class="mb-3">
-                        <label class="form-label">Modus Operandi:</label>
-                        <textarea class="form-control" name="modus_operandi" rows="4"><?php echo htmlspecialchars($profile['modus_operandi']); ?></textarea>
-                        <small class="text-muted">Indicate the Modus Operandi, Sale/Distribution and Transportation of Dangerous Drugs</small>
+                <section class="form-section">
+                    <div class="section-header">
+                        <i class="fas fa-exchange-alt"></i>
+                        <h4>V. Modus Operandi</h4>
                     </div>
-                </div>
+                    <div class="form-field full-width">
+                        <textarea class="form-control" name="modus_operandi" rows="4"><?php echo htmlspecialchars($profile['modus_operandi']); ?></textarea>
+                    </div>
+                </section>
 
                 <!-- VI. Organizational Structure -->
-                <div class="form-section">
-                    <h4><i class="fas fa-sitemap"></i> VI. ORGANIZATIONAL STRUCTURE OF THE GROUP</h4>
-                    <div class="mb-3">
-                        <label class="form-label">Structure Details:</label>
-                        <textarea class="form-control" name="organizational_structure" rows="3"><?php echo htmlspecialchars($profile['organizational_structure']); ?></textarea>
-                        <small class="text-muted">Indicate the whole membership of the group</small>
+                <section class="form-section">
+                    <div class="section-header">
+                        <i class="fas fa-sitemap"></i>
+                        <h4>VI. Organizational Structure</h4>
                     </div>
-                </div>
+                    <div class="form-field full-width">
+                        <textarea class="form-control" name="organizational_structure" rows="3"><?php echo htmlspecialchars($profile['organizational_structure']); ?></textarea>
+                    </div>
+                </section>
 
                 <!-- VII. CI Matters -->
-                <div class="form-section">
-                    <h4><i class="fas fa-user-secret"></i> VII. CI MATTERS</h4>
-                    <div class="mb-3">
-                        <label class="form-label">CI Information:</label>
+                <section class="form-section">
+                    <div class="section-header">
+                        <i class="fas fa-user-secret"></i>
+                        <h4>VII. CI Matters</h4>
+                    </div>
+                    <div class="form-field full-width">
                         <textarea class="form-control" name="ci_matters" rows="3"><?php echo htmlspecialchars($profile['ci_matters']); ?></textarea>
-                        <small class="text-muted">AFP/PNP Government Officer's Instrument</small>
                     </div>
                     
-                    <div class="mb-3">
-                        <label class="form-label">Other Significant Revelations:</label>
+                    <div class="form-field full-width" style="margin-top: 20px;">
+                        <label>Other Significant Revelations</label>
                         <textarea class="form-control" name="other_revelations" rows="3"><?php echo htmlspecialchars($profile['other_revelations']); ?></textarea>
                     </div>
-                </div>
+                </section>
 
-                <!-- VIII. Recommendation -->
-                <div class="form-section">
-                    <h4><i class="fas fa-check-circle"></i> VIII. RECOMMENDATION</h4>
-                    <div class="mb-3">
-                        <select class="form-select" name="recommendation">
-                            <option value="">Select Recommendation</option>
-                            <option value="For Filing" <?php echo $profile['recommendation'] == 'For Filing' ? 'selected' : ''; ?>>For Filing</option>
-                            <option value="For Investigation" <?php echo $profile['recommendation'] == 'For Investigation' ? 'selected' : ''; ?>>For Investigation</option>
-                            <option value="For Delisting" <?php echo $profile['recommendation'] == 'For Delisting' ? 'selected' : ''; ?>>For Delisting</option>
-                            <option value="For Prosecution" <?php echo $profile['recommendation'] == 'For Prosecution' ? 'selected' : ''; ?>>For Prosecution</option>
-                            <option value="Closed" <?php echo $profile['recommendation'] == 'Closed' ? 'selected' : ''; ?>>Closed</option>
-                        </select>
+                <!-- VIII. Recommendation & Status -->
+                <section class="form-section">
+                    <div class="section-header">
+                        <i class="fas fa-check-circle"></i>
+                        <h4>VIII. Recommendation & Status</h4>
                     </div>
-                </div>
-
-                <!-- Profile Status -->
-                <div class="form-section">
-                    <h4><i class="fas fa-tag"></i> PROFILE STATUS</h4>
-                    <div class="mb-3">
-                        <select class="form-select" name="status">
-                            <option value="active" <?php echo $profile['status'] == 'active' ? 'selected' : ''; ?>>Active</option>
-                            <option value="archived" <?php echo $profile['status'] == 'archived' ? 'selected' : ''; ?>>Archived</option>
-                            <option value="delisted" <?php echo $profile['status'] == 'delisted' ? 'selected' : ''; ?>>Delisted</option>
-                        </select>
+                    
+                    <div class="form-grid">
+                        <div class="form-field">
+                            <label>Recommendation</label>
+                            <select class="form-select" name="recommendation">
+                                <option value="">Select</option>
+                                <option value="For Filing" <?php echo $profile['recommendation'] == 'For Filing' ? 'selected' : ''; ?>>For Filing</option>
+                                <option value="For Investigation" <?php echo $profile['recommendation'] == 'For Investigation' ? 'selected' : ''; ?>>For Investigation</option>
+                                <option value="For Delisting" <?php echo $profile['recommendation'] == 'For Delisting' ? 'selected' : ''; ?>>For Delisting</option>
+                                <option value="For Prosecution" <?php echo $profile['recommendation'] == 'For Prosecution' ? 'selected' : ''; ?>>For Prosecution</option>
+                                <option value="Closed" <?php echo $profile['recommendation'] == 'Closed' ? 'selected' : ''; ?>>Closed</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-field">
+                            <label>Profile Status</label>
+                            <select class="form-select" name="status">
+                                <option value="active" <?php echo $profile['status'] == 'active' ? 'selected' : ''; ?>>Active</option>
+                                <option value="archived" <?php echo $profile['status'] == 'archived' ? 'selected' : ''; ?>>Archived</option>
+                                <option value="delisted" <?php echo $profile['status'] == 'delisted' ? 'selected' : ''; ?>>Delisted</option>
+                            </select>
+                        </div>
                     </div>
-                </div>
+                </section>
 
-                <!-- Action Buttons -->
-                <div class="action-buttons">
-                    <button type="submit" class="btn btn-pnp">
+                <!-- Form Actions -->
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">
                         <i class="fas fa-save"></i> Save Changes
                     </button>
-                    <a href="view_profile.php?id=<?php echo $profile['id']; ?>" class="btn btn-info">
+                    <a href="view_profile.php?id=<?php echo $profile['id']; ?>" class="btn-info">
                         <i class="fas fa-eye"></i> View Profile
                     </a>
-                    <a href="dashboard.php" class="btn btn-secondary">
+                    <a href="dashboard.php" class="btn-secondary">
                         <i class="fas fa-times"></i> Cancel
                     </a>
                 </div>
             </form>
         </div>
-    </div>
-    
-    <div class="footer">
-        <div class="container">
-            <small>Department of the Interior and Local Government | PHILIPPINE NATIONAL POLICE<br>
-            BUKIDNON POLICE PROVINCIAL OFFICE | MANOLO FORTICH POLICE STATION<br>
-            All data is confidential and for official use only.</small>
-        </div>
+
+        <footer class="site-footer">
+            <div class="container">
+                <small>Department of the Interior and Local Government | PHILIPPINE NATIONAL POLICE<br>
+                BUKIDNON POLICE PROVINCIAL OFFICE | MANOLO FORTICH POLICE STATION<br>
+                All data is confidential and for official use only.</small>
+            </div>
+        </footer>
     </div>
 
     <script>
+        // Picture upload preview
+        document.getElementById('profilePicture').addEventListener('change', function(e) {
+            if (this.files && this.files[0]) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    var pictureBox = document.getElementById('picturePreview');
+                    pictureBox.innerHTML = '<img src="' + e.target.result + '" alt="Profile Picture">';
+                    
+                    // Auto-submit the picture form
+                    document.getElementById('pictureForm').submit();
+                }
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+
         // Function to add sibling row
         function addSiblingRow() {
             const table = document.getElementById('siblingsTable').getElementsByTagName('tbody')[0];
@@ -1175,7 +1421,7 @@ function isDrugPushed($drug, $drugsPushedArray) {
             cells[2].innerHTML = '<input type="text" class="form-control" name="sibling_occupation[]">';
             cells[3].innerHTML = '<input type="text" class="form-control" name="sibling_status[]">';
             cells[4].innerHTML = '<input type="text" class="form-control" name="sibling_address[]">';
-            cells[5].innerHTML = '<button type="button" class="btn btn-danger btn-sm" onclick="removeRow(this)"><i class="fas fa-trash"></i></button>';
+            cells[5].innerHTML = '<button type="button" class="btn-danger btn-sm" onclick="removeRow(this)"><i class="fas fa-trash"></i></button>';
         }
         
         // Function to remove sibling row
@@ -1183,7 +1429,6 @@ function isDrugPushed($drug, $drugsPushedArray) {
             const row = button.closest('tr');
             const tableBody = row.parentNode;
             
-            // Don't remove if it's the last row
             if (tableBody.rows.length > 1) {
                 row.remove();
             } else {
