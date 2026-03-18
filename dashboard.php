@@ -41,14 +41,29 @@ $query = "SELECT COUNT(*) as total FROM biographical_profiles WHERE arrest_datet
 $stmt = $db->query($query);
 $stats['arrested'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
 
-// Get distinct barangays from present_address
-$barangayQuery = "SELECT DISTINCT 
-                   TRIM(SUBSTRING_INDEX(present_address, ',', 1)) as barangay 
-                   FROM biographical_profiles 
-                   WHERE present_address IS NOT NULL AND present_address != ''
-                   ORDER BY barangay";
-$barangayStmt = $db->query($barangayQuery);
-$barangays = $barangayStmt->fetchAll(PDO::FETCH_ASSOC);
+// Get barangay statistics for pie chart
+$barangayStatsQuery = "SELECT 
+                        TRIM(SUBSTRING_INDEX(present_address, ',', 1)) as barangay,
+                        COUNT(*) as count
+                        FROM biographical_profiles 
+                        WHERE present_address IS NOT NULL AND present_address != ''
+                        GROUP BY barangay
+                        ORDER BY count DESC
+                        LIMIT 5";
+$barangayStatsStmt = $db->query($barangayStatsQuery);
+$barangayStats = $barangayStatsStmt->fetchAll(PDO::FETCH_ASSOC);
+
+$barangayLabels = [];
+$barangayCounts = [];
+$barangayData = []; // For clickable links
+foreach ($barangayStats as $stat) {
+    $barangayLabels[] = $stat['barangay'];
+    $barangayCounts[] = $stat['count'];
+    $barangayData[] = [
+        'barangay' => $stat['barangay'],
+        'count' => $stat['count']
+    ];
+}
 
 // Get distinct years from arrest dates
 $yearQuery = "SELECT DISTINCT YEAR(arrest_datetime) as year 
@@ -122,6 +137,7 @@ $recent_activities = $activityStmt->fetchAll(PDO::FETCH_ASSOC);
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
         * {
@@ -397,41 +413,140 @@ $recent_activities = $activityStmt->fetchAll(PDO::FETCH_ASSOC);
             text-transform: uppercase;
         }
 
-        /* Filter Section */
-        .filter-section {
+        /* Charts Row - Updated for bigger pie chart */
+        .charts-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr; /* Pie chart takes 2/3, filter takes 1/3 */
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .chart-card {
             background: white;
             border-radius: 16px;
             padding: 20px;
-            margin-bottom: 30px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border-left: 4px solid #c9a959;
+            transition: all 0.2s;
+        }
+
+        .chart-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .chart-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .chart-header i {
+            font-size: 18px;
+            color: #c9a959;
+        }
+
+        .chart-header h4 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #0a2f4d;
+            margin: 0;
+        }
+
+        .chart-container {
+            height: 300px; /* Bigger height for pie chart */
+            position: relative;
+            cursor: pointer;
+        }
+
+        /* Chart Legend with Clickable Items */
+        .chart-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 10px;
+            border-radius: 20px;
+            background: #f8fafc;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 12px;
+        }
+
+        .legend-item:hover {
+            background: #0a2f4d;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .legend-item:hover .legend-count {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        .legend-name {
+            font-weight: 500;
+        }
+
+        .legend-count {
+            background: #e2e8f0;
+            padding: 2px 6px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        /* Filter Section - Smaller design */
+        .filter-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border-left: 4px solid #c9a959;
         }
 
         .filter-header {
             display: flex;
             align-items: center;
             gap: 10px;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
             border-bottom: 1px solid #e2e8f0;
         }
 
         .filter-header i {
-            font-size: 20px;
+            font-size: 16px;
             color: #c9a959;
         }
 
         .filter-header h4 {
             margin: 0;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 600;
             color: #0a2f4d;
         }
 
         .filter-form {
-            display: grid;
-            grid-template-columns: 2fr 1fr 1fr auto;
-            gap: 15px;
-            align-items: flex-end;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
 
         .filter-group {
@@ -441,19 +556,19 @@ $recent_activities = $activityStmt->fetchAll(PDO::FETCH_ASSOC);
 
         .filter-group label {
             display: block;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 600;
             color: #64748b;
-            margin-bottom: 5px;
+            margin-bottom: 3px;
             text-transform: uppercase;
         }
 
         .filter-select {
             width: 100%;
-            padding: 10px 15px;
+            padding: 8px 12px;
             border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            font-size: 14px;
+            border-radius: 6px;
+            font-size: 13px;
             color: #1e293b;
             background: white;
             cursor: pointer;
@@ -464,46 +579,22 @@ $recent_activities = $activityStmt->fetchAll(PDO::FETCH_ASSOC);
             border-color: #c9a959;
         }
 
-        .filter-actions {
-            display: flex;
-            gap: 10px;
-            align-items: flex-end;
-        }
-
-        .btn-filter {
-            background: #0a2f4d;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-            white-space: nowrap;
-        }
-
-        .btn-filter:hover {
-            background: #123b5e;
-        }
-
         .btn-reset {
             background: #f1f5f9;
             color: #64748b;
             border: 1px solid #e2e8f0;
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-size: 14px;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
             font-weight: 500;
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 8px;
             text-decoration: none;
             transition: all 0.2s;
-            white-space: nowrap;
+            width: 100%;
+            margin-top: 5px;
         }
 
         .btn-reset:hover {
@@ -513,35 +604,32 @@ $recent_activities = $activityStmt->fetchAll(PDO::FETCH_ASSOC);
 
         .active-filter-badge {
             margin-top: 15px;
-            padding: 12px 15px;
+            padding: 10px 12px;
             background: #f0f9ff;
             border-radius: 8px;
             border-left: 4px solid #0a2f4d;
             display: flex;
             align-items: center;
-            gap: 10px;
-            font-size: 14px;
+            gap: 8px;
+            font-size: 13px;
             flex-wrap: wrap;
-        }
-
-        .active-filter-badge i {
-            color: #0a2f4d;
         }
 
         .filter-tag {
             background: #0a2f4d;
             color: white;
-            padding: 4px 10px;
+            padding: 3px 8px;
             border-radius: 20px;
-            font-size: 12px;
+            font-size: 11px;
             display: inline-flex;
             align-items: center;
-            gap: 5px;
-            margin-left: 10px;
+            gap: 4px;
+            margin-left: 8px;
         }
 
         .filter-tag i {
             color: #c9a959;
+            font-size: 10px;
         }
 
         /* Tables Container */
@@ -590,7 +678,6 @@ $recent_activities = $activityStmt->fetchAll(PDO::FETCH_ASSOC);
             color: #0a2f4d;
         }
 
-        /* Modern Table */
         .modern-table {
             width: 100%;
             border-collapse: collapse;
@@ -616,56 +703,6 @@ $recent_activities = $activityStmt->fetchAll(PDO::FETCH_ASSOC);
             background: #f8fafc;
         }
 
-        /* Status Badges */
-        .status-badge {
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 600;
-            display: inline-block;
-        }
-
-        .status-active {
-            background: #e3f9e5;
-            color: #28a745;
-        }
-
-        .status-delisted {
-            background: #ffe5e5;
-            color: #dc3545;
-        }
-
-        .status-archived {
-            background: #fff3cd;
-            color: #856404;
-        }
-
-        .arrest-badge {
-            background: #f1f5f9;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 10px;
-            color: #64748b;
-            margin-left: 5px;
-        }
-
-        .no-arrest {
-            color: #94a3b8;
-            font-style: italic;
-            font-size: 12px;
-        }
-
-        /* Address Preview */
-        .address-preview {
-            font-size: 11px;
-            color: #94a3b8;
-            max-width: 200px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        /* Action Buttons */
         .action-btns {
             display: flex;
             gap: 5px;
@@ -689,7 +726,6 @@ $recent_activities = $activityStmt->fetchAll(PDO::FETCH_ASSOC);
         .btn-icon.view:hover { background: #123b5e; }
         .btn-icon.edit:hover { background: #d4b36a; }
 
-        /* Activity List */
         .activity-list {
             list-style: none;
             padding: 0;
@@ -736,11 +772,6 @@ $recent_activities = $activityStmt->fetchAll(PDO::FETCH_ASSOC);
             gap: 10px;
         }
 
-        .activity-meta i {
-            margin-right: 3px;
-        }
-
-        /* Footer */
         .footer {
             background: white;
             padding: 20px 0;
@@ -751,7 +782,6 @@ $recent_activities = $activityStmt->fetchAll(PDO::FETCH_ASSOC);
             color: #64748b;
         }
 
-        /* Alerts */
         .alert-modern {
             background: white;
             border-left: 4px solid;
@@ -772,40 +802,13 @@ $recent_activities = $activityStmt->fetchAll(PDO::FETCH_ASSOC);
             color: #28a745;
         }
 
-        /* Responsive */
         @media (max-width: 1024px) {
-            .filter-form {
-                grid-template-columns: 1fr;
+            .charts-row {
+                grid-template-columns: 1fr; /* Stack on mobile */
             }
             
             .tables-grid {
                 grid-template-columns: 1fr;
-            }
-            
-            .filter-actions {
-                justify-content: flex-end;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .navbar-header {
-                flex-direction: column;
-                gap: 15px;
-            }
-            
-            .user-area {
-                width: 100%;
-                justify-content: center;
-            }
-            
-            .nav-menu ul {
-                flex-wrap: wrap;
-            }
-            
-            .welcome-banner {
-                flex-direction: column;
-                text-align: center;
-                gap: 15px;
             }
         }
     </style>
@@ -839,22 +842,21 @@ $recent_activities = $activityStmt->fetchAll(PDO::FETCH_ASSOC);
                 </div>
             </div>
             
-           <div class="nav-menu">
-    <ul>
-        <li><a href="dashboard.php" class="active"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
-        <li><a href="profile_form.php"><i class="fas fa-plus-circle"></i> New Profile</a></li>
-        <li><a href="profiles.php"><i class="fas fa-list"></i> View Profiles</a></li>
-        
-        <!-- Barangays Button (NEW) -->
-        <li><a href="barangays.php"><i class="fas fa-map-marker-alt"></i> Barangays</a></li>
-        
-        <li><a href="reports.php"><i class="fas fa-chart-bar"></i> Reports</a></li>
-        <?php if ($_SESSION['role'] == 'admin'): ?>
-        <li><a href="users.php"><i class="fas fa-users-cog"></i> User Management</a></li>
-        <?php endif; ?>
-        <li style="margin-left: auto;"><a href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
-    </ul>
-</div>
+            <div class="nav-menu">
+                <ul>
+                    <li><a href="dashboard.php" class="active"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                    <li><a href="profile_form.php"><i class="fas fa-plus-circle"></i> New Profile</a></li>
+                    <li><a href="profiles.php"><i class="fas fa-list"></i> View Profiles</a></li>
+                    <li><a href="barangays.php"><i class="fas fa-map-marker-alt"></i> Barangays</a></li>
+                    <li><a href="reports.php"><i class="fas fa-chart-bar"></i> Reports</a></li>
+                    <?php if ($_SESSION['role'] == 'admin'): ?>
+                    <li><a href="users.php"><i class="fas fa-users-cog"></i> Account</a></li>
+                    <?php endif; ?>
+                    <li style="margin-left: auto;"><a href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
 
     <div class="main-content">
         <!-- Success Message -->
@@ -876,134 +878,131 @@ $recent_activities = $activityStmt->fetchAll(PDO::FETCH_ASSOC);
                 <i class="fas fa-calendar-alt"></i> <?php echo date('F d, Y'); ?>
             </div>
         </div>
-          
-        <!-- Filter Section - Updated with Barangay Filter -->
-        <div class="filter-section">
-            <div class="filter-header">
-                <i class="fas fa-filter"></i>
-                <h4>Filter Profiles</h4>
+
+        <!-- Charts Row - Pie Chart (Big) and Filter (Small) -->
+        <div class="charts-row">
+            <!-- Pie Chart Card (Big) -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <i class="fas fa-chart-pie"></i>
+                    <h4>Top 5 Barangays by Profile Count</h4>
+                </div>
+                <div class="chart-container">
+                    <canvas id="barangayPieChart"></canvas>
+                </div>
+                <!-- Clickable Legend -->
+                <div class="chart-legend" id="pieChartLegend">
+                    <!-- Will be populated by JavaScript -->
+                </div>
             </div>
-            
-            <form method="GET" action="" class="filter-form">
-                <!-- Barangay Filter (NEW) -->
-             <div class="filter-group">
-    <label><i class="fas fa-map-marker-alt"></i> Barangay</label>
-    <select name="barangay" class="filter-select">
-        <option value="">All Barangays</option>
-        
-        <!-- 22 Barangays of Manolo Fortich -->
-        <?php
-        $manolo_barangays = [
-            'Agusan Canyon',
-            'Alae',
-            'Dahilayan',
-            'Dalirig',
-            'Damilag',
-            'Dicklum',
-            'Guilang-guilang',
-            'Kalugmanan',
-            'Lindaban',
-            'Lingion',
-            'Lunocan',
-            'Maluko',
-            'Mambatangan',
-            'Mampayag',
-            'Minsuro',
-            'Mantibugao',
-            'Tankulan (Poblacion)',
-            'San Miguel',
-            'Sankanan',
-            'Santiago',
-            'Santo Niño',
-            'Ticala'
-        ];
-        
-        // Sort alphabetically
-        sort($manolo_barangays);
-        
-        foreach ($manolo_barangays as $barangay): 
-        ?>
-            <option value="<?php echo htmlspecialchars($barangay); ?>" 
-                <?php echo $selectedBarangay == $barangay ? 'selected' : ''; ?>>
-                <?php echo htmlspecialchars($barangay); ?>
-            </option>
-        <?php endforeach; ?>
-    </select>
-</div>
-                
-                <div class="filter-group">
-                    <label><i class="fas fa-calendar"></i> Arrest Year</label>
-                    <select name="year" class="filter-select">
-                        <option value="">All Years</option>
-                        <?php foreach ($years as $year): ?>
-                            <option value="<?php echo $year['year']; ?>" 
-                                <?php echo $selectedYear == $year['year'] ? 'selected' : ''; ?>>
-                                <?php echo $year['year']; ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
+
+            <!-- Filter Section (Small) -->
+            <div class="filter-card">
+                <div class="filter-header">
+                    <i class="fas fa-filter"></i>
+                    <h4>Quick Filters</h4>
                 </div>
-                
-                <div class="filter-group">
-                    <label><i class="fas fa-calendar-alt"></i> Arrest Month</label>
-                    <select name="month" class="filter-select">
-                        <option value="">All Months</option>
-                        <?php foreach ($months as $month): ?>
-                            <option value="<?php echo $month['month']; ?>" 
-                                <?php echo $selectedMonth == $month['month'] ? 'selected' : ''; ?>>
-                                <?php echo $month['month_name']; ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
+                <div>
+                    <form method="GET" action="" id="filterForm">
+                        <!-- Barangay Filter -->
+                        <div class="filter-group">
+                            <label><i class="fas fa-map-marker-alt"></i> Barangay</label>
+                            <select name="barangay" class="filter-select" id="barangaySelect" onchange="this.form.submit()">
+                                <option value="">All Barangays</option>
+                                <?php
+                                $manolo_barangays = [
+                                    'Agusan Canyon', 'Alae', 'Dahilayan', 'Dalirig', 'Damilag',
+                                    'Dicklum', 'Guilang-guilang', 'Kalugmanan', 'Lindaban', 'Lingion',
+                                    'Lunocan', 'Maluko', 'Mambatangan', 'Mampayag', 'Minsuro',
+                                    'Mantibugao', 'Tankulan (Poblacion)', 'San Miguel', 'Sankanan',
+                                    'Santiago', 'Santo Niño', 'Ticala'
+                                ];
+                                sort($manolo_barangays);
+                                foreach ($manolo_barangays as $barangay): 
+                                ?>
+                                    <option value="<?php echo htmlspecialchars($barangay); ?>" 
+                                        <?php echo $selectedBarangay == $barangay ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars($barangay); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        
+                        <!-- Year Filter -->
+                        <div class="filter-group">
+                            <label><i class="fas fa-calendar"></i> Arrest Year</label>
+                            <select name="year" class="filter-select" onchange="this.form.submit()">
+                                <option value="">All Years</option>
+                                <?php 
+                                for ($y = 2016; $y <= 2026; $y++): 
+                                ?>
+                                    <option value="<?php echo $y; ?>" 
+                                        <?php echo $selectedYear == $y ? 'selected' : ''; ?>>
+                                        <?php echo $y; ?>
+                                    </option>
+                                <?php endfor; ?>
+                            </select>
+                        </div>
+                        
+                        <!-- Month Filter -->
+                        <div class="filter-group">
+                            <label><i class="fas fa-calendar-alt"></i> Arrest Month</label>
+                            <select name="month" class="filter-select" onchange="this.form.submit()">
+                                <option value="">All Months</option>
+                                <?php foreach ($months as $month): ?>
+                                    <option value="<?php echo $month['month']; ?>" 
+                                        <?php echo $selectedMonth == $month['month'] ? 'selected' : ''; ?>>
+                                        <?php echo $month['month_name']; ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        
+                        <!-- Reset Button -->
+                        <a href="dashboard.php" class="btn-reset">
+                            <i class="fas fa-redo"></i> Reset Filters
+                        </a>
+                    </form>
                 </div>
-                
-                <div class="filter-actions">
-                    <button type="submit" class="btn-filter">
-                        <i class="fas fa-search"></i> Apply Filters
-                    </button>
-                    <a href="dashboard.php" class="btn-reset">
-                        <i class="fas fa-redo"></i> Reset
-                    </a>
-                </div>
-            </form>
-            
-            <!-- Active Filter Display - Updated -->
-            <?php if (!empty($selectedBarangay) || !empty($selectedYear) || !empty($selectedMonth)): ?>
-            <div class="active-filter-badge">
-                <i class="fas fa-info-circle"></i>
-                <span>
-                    <strong>Active Filters:</strong>
-                    
-                    <?php if (!empty($selectedBarangay)): ?>
-                        <span class="filter-tag">
-                            <i class="fas fa-map-marker-alt"></i> <?php echo htmlspecialchars($selectedBarangay); ?>
-                        </span>
-                    <?php endif; ?>
-                    
-                    <?php if (!empty($selectedYear)): ?>
-                        <span class="filter-tag">
-                            <i class="fas fa-calendar"></i> Year: <?php echo $selectedYear; ?>
-                        </span>
-                    <?php endif; ?>
-                    
-                    <?php if (!empty($selectedMonth)): ?>
-                        <span class="filter-tag">
-                            <i class="fas fa-calendar-alt"></i> 
-                            Month: <?php echo date('F', mktime(0, 0, 0, $selectedMonth, 1)); ?>
-                        </span>
-                    <?php endif; ?>
-                    
-                    <span class="badge-count" style="margin-left: 10px;">
-                        <?php echo count($recent_profiles); ?> records found
-                    </span>
-                </span>
             </div>
-            <?php endif; ?>
         </div>
+
+        <!-- Active Filter Display -->
+        <?php if (!empty($selectedBarangay) || !empty($selectedYear) || !empty($selectedMonth)): ?>
+        <div class="active-filter-badge" style="margin-bottom: 20px;">
+            <i class="fas fa-info-circle"></i>
+            <span>
+                <strong>Active Filters:</strong>
+                
+                <?php if (!empty($selectedBarangay)): ?>
+                    <span class="filter-tag">
+                        <i class="fas fa-map-marker-alt"></i> <?php echo htmlspecialchars($selectedBarangay); ?>
+                    </span>
+                <?php endif; ?>
+                
+                <?php if (!empty($selectedYear)): ?>
+                    <span class="filter-tag">
+                        <i class="fas fa-calendar"></i> Year: <?php echo $selectedYear; ?>
+                    </span>
+                <?php endif; ?>
+                
+                <?php if (!empty($selectedMonth)): ?>
+                    <span class="filter-tag">
+                        <i class="fas fa-calendar-alt"></i> 
+                        Month: <?php echo date('F', mktime(0, 0, 0, $selectedMonth, 1)); ?>
+                    </span>
+                <?php endif; ?>
+                
+                <span class="badge-count" style="margin-left: 10px;">
+                    <?php echo count($recent_profiles); ?> records found
+                </span>
+            </span>
+        </div>
+        <?php endif; ?>
 
         <!-- Tables Grid -->
         <div class="tables-grid">
-            <!-- Recent Profiles Table - Updated with Address -->
+            <!-- Recent Profiles Table -->
             <div class="table-card">
                 <div class="card-header">
                     <h5>
@@ -1027,13 +1026,11 @@ $recent_activities = $activityStmt->fetchAll(PDO::FETCH_ASSOC);
                             <th>Alias</th>
                             <th>Age</th>
                             <th>Barangay</th>
-                            <th>Status</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($recent_profiles as $profile): 
-                            // Extract barangay from present_address
                             $barangay = '';
                             if (!empty($profile['present_address'])) {
                                 $addressParts = explode(',', $profile['present_address']);
@@ -1054,11 +1051,6 @@ $recent_activities = $activityStmt->fetchAll(PDO::FETCH_ASSOC);
                                 <?php endif; ?>
                             </td>
                             <td>
-                                <span class="status-badge status-<?php echo $profile['status']; ?>">
-                                    <?php echo ucfirst($profile['status']); ?>
-                                </span>
-                            </td>
-                            <td>
                                 <div class="action-btns">
                                     <a href="view_profile.php?id=<?php echo $profile['id']; ?>" class="btn-icon view" title="View Profile">
                                         <i class="fas fa-eye"></i>
@@ -1076,7 +1068,7 @@ $recent_activities = $activityStmt->fetchAll(PDO::FETCH_ASSOC);
                 <div class="text-center py-5">
                     <i class="fas fa-folder-open fa-3x" style="color: #cbd5e1; margin-bottom: 15px;"></i>
                     <p style="color: #64748b;">No profiles found matching your filters.</p>
-                    <a href="dashboard.php" class="btn-filter" style="display: inline-block; text-decoration: none; margin-top: 10px;">
+                    <a href="dashboard.php" class="btn-filter" style="display: inline-block; text-decoration: none; margin-top: 10px; background: #0a2f4d; color: white; padding: 10px 20px; border-radius: 8px;">
                         <i class="fas fa-redo"></i> Clear Filters
                     </a>
                 </div>
@@ -1127,26 +1119,93 @@ $recent_activities = $activityStmt->fetchAll(PDO::FETCH_ASSOC);
             </div>
         </div>
     </div>
-
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <p>© <?php echo date('Y'); ?> Philippine National Police - Manolo Fortich Police Station. All rights reserved.</p>
-            <p>Department of the Interior and Local Government | Bukidnon Police Provincial Office</p>
-        </div>
-    </footer>
-
     <script>
-        // Auto-submit form when any dropdown changes
-        document.querySelector('select[name="barangay"]').addEventListener('change', function() {
+        // Barangay data from PHP
+        const barangayData = <?php echo json_encode($barangayData); ?>;
+        const colors = ['#0a2f4d', '#c9a959', '#28a745', '#dc3545', '#ffc107'];
+        
+        // Pie Chart
+        const pieCtx = document.getElementById('barangayPieChart').getContext('2d');
+        const pieChart = new Chart(pieCtx, {
+            type: 'pie',
+            data: {
+                labels: <?php echo json_encode($barangayLabels); ?>,
+                datasets: [{
+                    data: <?php echo json_encode($barangayCounts); ?>,
+                    backgroundColor: colors,
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false // Hide default legend
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.raw || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                return `${label}: ${value} profiles (${percentage}%)`;
+                            }
+                        }
+                    }
+                },
+                onClick: function(event, item) {
+                    if (item.length > 0) {
+                        const index = item[0].dataIndex;
+                        const barangay = barangayData[index].barangay;
+                        window.location.href = '?barangay=' + encodeURIComponent(barangay);
+                    }
+                }
+            }
+        });
+
+        // Create clickable legend
+        const legendContainer = document.getElementById('pieChartLegend');
+        barangayData.forEach((item, index) => {
+            const legendItem = document.createElement('div');
+            legendItem.className = 'legend-item';
+            legendItem.onclick = function() {
+                window.location.href = '?barangay=' + encodeURIComponent(item.barangay);
+            };
+            
+            legendItem.innerHTML = `
+                <div class="legend-color" style="background-color: ${colors[index]}"></div>
+                <span class="legend-name">${item.barangay}</span>
+                <span class="legend-count">${item.count}</span>
+            `;
+            
+            legendContainer.appendChild(legendItem);
+        });
+
+        // Add "All Barangays" option to legend
+        const allItem = document.createElement('div');
+        allItem.className = 'legend-item';
+        allItem.onclick = function() {
+            window.location.href = '?barangay=';
+        };
+        allItem.innerHTML = `
+            <div class="legend-color" style="background-color: #6c757d"></div>
+            <span class="legend-name">All Barangays</span>
+            <span class="legend-count"><?php echo array_sum($barangayCounts); ?></span>
+        `;
+        legendContainer.appendChild(allItem);
+
+        // Auto-submit form when dropdown changes
+        document.querySelector('select[name="barangay"]')?.addEventListener('change', function() {
             this.form.submit();
         });
         
-        document.querySelector('select[name="year"]').addEventListener('change', function() {
+        document.querySelector('select[name="year"]')?.addEventListener('change', function() {
             this.form.submit();
         });
         
-        document.querySelector('select[name="month"]').addEventListener('change', function() {
+        document.querySelector('select[name="month"]')?.addEventListener('change', function() {
             this.form.submit();
         });
 

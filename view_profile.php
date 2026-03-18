@@ -14,6 +14,10 @@ $db = $database->getConnection();
 // Get profile ID from URL
 $id = isset($_GET['id']) ? $_GET['id'] : 0;
 
+// Get return URL (where to go back)
+$return_to = isset($_GET['return_to']) ? $_GET['return_to'] : 'profiles.php';
+$barangay = isset($_GET['barangay']) ? $_GET['barangay'] : '';
+
 if ($id == 0) {
     header("Location: dashboard.php");
     exit();
@@ -68,6 +72,15 @@ function displayValue($value, $default = '—') {
 $drugsPushedArray = !empty($profile['drugs_pushed']) ? explode(', ', $profile['drugs_pushed']) : [];
 $drugTypesArray = !empty($profile['drugs_involved']) ? explode(', ', $profile['drugs_involved']) : [];
 $positionRolesArray = !empty($profile['position_roles']) ? explode(', ', $profile['position_roles']) : [];
+
+// Determine back link and text
+if ($return_to == 'barangay' && !empty($barangay)) {
+    $back_link = "barangay_profiles.php?barangay=" . urlencode($barangay);
+    $back_text = "Back to " . htmlspecialchars($barangay);
+} else {
+    $back_link = "profiles.php";
+    $back_text = "Back to Profiles";
+}
 
 // Get current date
 $currentDate = date('F d, Y');
@@ -935,10 +948,10 @@ $currentDate = date('F d, Y');
                 </div>
             </div>
 
-        <!-- Action Buttons -->
+        <!-- Action Buttons - Smart Back Button -->
         <div class="action-bar no-print">
-            <a href="dashboard.php" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Back
+            <a href="<?php echo $back_link; ?>" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> <?php echo $back_text; ?>
             </a>
             <button onclick="window.print()" class="btn btn-print">
                 <i class="fas fa-print"></i> Print Profile

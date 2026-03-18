@@ -443,7 +443,7 @@ $all_barangays = [
                     <li><a href="barangays.php" class="active"><i class="fas fa-map-marker-alt"></i> Barangays</a></li>
                     <li><a href="reports.php"><i class="fas fa-chart-bar"></i> Reports</a></li>
                     <?php if ($_SESSION['role'] == 'admin'): ?>
-                    <li><a href="users.php"><i class="fas fa-users-cog"></i> User Management</a></li>
+                    <li><a href="users.php"><i class="fas fa-users-cog"></i> Account</a></li>
                     <?php endif; ?>
                     <li style="margin-left: auto;"><a href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
                 </ul>

@@ -23,7 +23,7 @@ if (empty($selectedBarangay)) {
 $selectedYear = isset($_GET['year']) ? $_GET['year'] : '';
 $selectedMonth = isset($_GET['month']) ? $_GET['month'] : '';
 
-// Get distinct years from arrest dates for this barangay
+// Get distinct years from arrest_datetime for this barangay
 $yearQuery = "SELECT DISTINCT YEAR(arrest_datetime) as year 
               FROM biographical_profiles 
               WHERE present_address LIKE :barangay 
@@ -35,7 +35,7 @@ $yearStmt->bindParam(':barangay', $barangayParam);
 $yearStmt->execute();
 $years = $yearStmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Get distinct months from arrest dates for this barangay
+// Get distinct months from arrest_datetime for this barangay
 $monthQuery = "SELECT DISTINCT MONTH(arrest_datetime) as month, 
                MONTHNAME(arrest_datetime) as month_name 
                FROM biographical_profiles 
@@ -85,6 +85,10 @@ $statsStmt = $db->prepare($statsQuery);
 $statsStmt->bindParam(':barangay', $barangayParam);
 $statsStmt->execute();
 $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
+
+// Get current date for report
+$currentDate = date('F d, Y');
+$generatedBy = $_SESSION['full_name'] . ' - ' . $_SESSION['rank'];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -316,6 +320,29 @@ $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
         .title-text .barangay-name {
             color: #c9a959;
             font-weight: 700;
+        }
+
+        /* Print Button */
+        .btn-print {
+            background: #0a2f4d;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            margin-left: 10px;
+        }
+
+        .btn-print:hover {
+            background: #c9a959;
+            color: #0a2f4d;
         }
 
         /* Barangay Info Card */
@@ -608,12 +635,35 @@ $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
 
         .btn-icon.view { background: #0a2f4d; }
         .btn-icon.edit { background: #c9a959; }
+        .btn-icon.print { background: #0891b2; }
         .btn-icon.view:hover { background: #123b5e; }
         .btn-icon.edit:hover { background: #d4b36a; }
+        .btn-icon.print:hover { background: #0e7490; transform: translateY(-2px); }
 
         .empty-state {
             text-align: center;
             padding: 60px 20px;
+        }
+
+        /* Report Footer for Print */
+        .report-footer {
+            margin-top: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            text-align: center;
+            font-size: 12px;
+            color: #64748b;
+            border-top: 3px solid #c9a959;
+        }
+
+        .report-footer .signature {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px dashed #e2e8f0;
         }
 
         .footer {
@@ -624,6 +674,82 @@ $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
             text-align: center;
             font-size: 12px;
             color: #64748b;
+        }
+
+        /* PRINT STYLES */
+        @media print {
+            /* Hide non-printable elements */
+            .navbar-modern,
+            .nav-menu,
+            .btn-print,
+            .btn-back,
+            .filter-section,
+            .action-btns,
+            .footer,
+            .no-print {
+                display: none !important;
+            }
+
+            /* Page settings */
+            @page {
+                size: A4;
+                margin: 1.5cm;
+            }
+
+            body {
+                background: white;
+                padding: 0;
+                margin: 0;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .main-content {
+                max-width: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            .page-header {
+                margin-bottom: 20px;
+            }
+
+            .barangay-info {
+                break-inside: avoid;
+                page-break-inside: avoid;
+                border: 1px solid #ddd;
+                box-shadow: none;
+            }
+
+            .table-container {
+                break-inside: auto;
+                box-shadow: none;
+                border: 1px solid #ddd;
+            }
+
+            .modern-table th {
+                background: #f0f0f0 !important;
+                color: black !important;
+            }
+
+            .status-badge {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .report-footer {
+                border: 1px solid #ddd;
+                box-shadow: none;
+                break-inside: avoid;
+                page-break-inside: avoid;
+                margin-top: 30px;
+            }
+
+            /* Force background colors */
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
         }
 
         @media (max-width: 768px) {
@@ -641,12 +767,17 @@ $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
                 width: 100%;
                 justify-content: space-around;
             }
+            
+            .page-header {
+                flex-direction: column;
+                gap: 15px;
+            }
         }
     </style>
 </head>
 <body>
     <!-- Modern Navbar -->
-    <nav class="navbar-modern">
+    <nav class="navbar-modern no-print">
         <div class="navbar-container">
             <div class="navbar-header">
                 <div class="logo-area">
@@ -681,7 +812,7 @@ $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
                     <li><a href="barangays.php"><i class="fas fa-map-marker-alt"></i> Barangays</a></li>
                     <li><a href="reports.php"><i class="fas fa-chart-bar"></i> Reports</a></li>
                     <?php if ($_SESSION['role'] == 'admin'): ?>
-                    <li><a href="users.php"><i class="fas fa-users-cog"></i> User Management</a></li>
+                    <li><a href="users.php"><i class="fas fa-users-cog"></i> Account</a></li>
                     <?php endif; ?>
                     <li style="margin-left: auto;"><a href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
                 </ul>
@@ -690,7 +821,7 @@ $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
     </nav>
 
     <div class="main-content">
-        <!-- Page Header -->
+        <!-- Page Header with Print Button -->
         <div class="page-header">
             <div class="page-title">
                 <i class="fas fa-map-marker-alt"></i>
@@ -699,9 +830,14 @@ $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
                     <p>Viewing profiles from this barangay</p>
                 </div>
             </div>
-            <a href="barangays.php" class="btn-back">
-                <i class="fas fa-arrow-left"></i> Back to Barangays
-            </a>
+            <div style="display: flex; gap: 10px;">
+                <a href="barangays.php" class="btn-back">
+                    <i class="fas fa-arrow-left"></i> Back to Barangays
+                </a>
+                <button onclick="window.print()" class="btn-print no-print">
+                    <i class="fas fa-print"></i> Print Report
+                </button>
+            </div>
         </div>
 
         <!-- Barangay Info Card -->
@@ -715,26 +851,14 @@ $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
                     <div class="stat-value"><?php echo $stats['total']; ?></div>
                     <div class="stat-label">Total Profiles</div>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-value" style="color: #28a745;"><?php echo $stats['active_count']; ?></div>
-                    <div class="stat-label">Active</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value" style="color: #dc3545;"><?php echo $stats['delisted_count']; ?></div>
-                    <div class="stat-label">Delisted</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value" style="color: #ffc107;"><?php echo $stats['arrested_count']; ?></div>
-                    <div class="stat-label">Arrests</div>
-                </div>
             </div>
         </div>
 
         <!-- Filter Section with Year and Month -->
-        <div class="filter-section">
+        <div class="filter-section no-print">
             <div class="filter-header">
                 <i class="fas fa-filter"></i>
-                <h4>Filter by Arrest Date</h4>
+                <h4>Filter by Date of Arrest</h4>
             </div>
             
             <form method="GET" action="" class="filter-form">
@@ -814,9 +938,9 @@ $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
                                 <th>Full Name</th>
                                 <th>Alias</th>
                                 <th>Age</th>
-                                <th>Status</th>
-                                <th>Arrest Date</th>
-                                <th>Actions</th>
+                                <th>Date of Arrest</th>
+                                <th>Place of Arrest</th>
+                                <th class="no-print">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -826,27 +950,45 @@ $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
                                 <td><?php echo htmlspecialchars($profile['alias'] ?: '—'); ?></td>
                                 <td><?php echo $profile['age']; ?></td>
                                 <td>
-                                    <span class="status-badge status-<?php echo $profile['status']; ?>">
-                                        <?php echo ucfirst($profile['status']); ?>
-                                    </span>
-                                </td>
-                                <td>
                                     <?php if (!empty($profile['arrest_datetime'])): ?>
                                         <?php echo date('M d, Y', strtotime($profile['arrest_datetime'])); ?>
                                         <span class="arrest-badge">
                                             <i class="fas fa-clock"></i> <?php echo date('H:i', strtotime($profile['arrest_datetime'])); ?>
                                         </span>
                                     <?php else: ?>
-                                        <span class="no-arrest">No arrest record</span>
+                                        <span class="no-arrest">Not arrested</span>
                                     <?php endif; ?>
                                 </td>
                                 <td>
+                                    <?php if (!empty($profile['arrest_place'])): ?>
+                                        <?php echo htmlspecialchars($profile['arrest_place']); ?>
+                                    <?php else: ?>
+                                        <span class="no-arrest">Not specified</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="no-print">
+                                    <!-- Action Buttons -->
                                     <div class="action-btns">
-                                        <a href="view_profile.php?id=<?php echo $profile['id']; ?>" class="btn-icon view" title="View Profile">
+                                        <!-- View Button -->
+                                        <a href="view_profile.php?id=<?php echo $profile['id']; ?>&return_to=barangay&barangay=<?php echo urlencode($selectedBarangay); ?>" 
+                                           class="btn-icon view" 
+                                           title="View Profile">
                                             <i class="fas fa-eye"></i>
                                         </a>
-                                        <a href="edit_profile.php?id=<?php echo $profile['id']; ?>" class="btn-icon edit" title="Edit Profile">
+                                        
+                                        <!-- Edit Button -->
+                                        <a href="edit_profile.php?id=<?php echo $profile['id']; ?>&return_to=barangay&barangay=<?php echo urlencode($selectedBarangay); ?>" 
+                                           class="btn-icon edit" 
+                                           title="Edit Profile">
                                             <i class="fas fa-edit"></i>
+                                        </a>
+                                        
+                                        <!-- Print Button -->
+                                        <a href="view_profile.php?id=<?php echo $profile['id']; ?>&print=1" 
+                                           class="btn-icon print" 
+                                           title="Print Profile"
+                                           target="_blank">
+                                            <i class="fas fa-print"></i>
                                         </a>
                                     </div>
                                 </td>
@@ -856,13 +998,11 @@ $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
                     </table>
                 </div>
                 
-                <div class="mt-4 text-muted" style="border-top: 1px solid #e2e8f0; padding-top: 15px;">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <small>
-                            <i class="fas fa-database"></i> 
-                            Showing <strong><?php echo count($profiles); ?></strong> profiles from <strong><?php echo htmlspecialchars($selectedBarangay); ?></strong>
-                        </small>
-                    </div>
+                <div class="mt-4 text-muted">
+                    <small>
+                        <i class="fas fa-database"></i> 
+                        Showing <strong><?php echo count($profiles); ?></strong> profiles from <strong><?php echo htmlspecialchars($selectedBarangay); ?></strong>
+                    </small>
                 </div>
             <?php else: ?>
                 <div class="empty-state">
@@ -875,10 +1015,39 @@ $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
                 </div>
             <?php endif; ?>
         </div>
+
+        <!-- Report Footer for Print -->
+        <div class="report-footer no-print">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <i class="fas fa-file-alt" style="color: #c9a959;"></i>
+                    <strong> Report ID:</strong> PNP-MFPS-BRG-<?php echo date('Ymd'); ?>-<?php echo str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT); ?>
+                </div>
+                <div>
+                    <i class="fas fa-calendar-alt" style="color: #c9a959;"></i>
+                    <strong> Generated:</strong> <?php echo $currentDate; ?>
+                </div>
+            </div>
+            <div class="signature">
+                <div>
+                    <p><strong>Prepared by:</strong></p>
+                    <p style="margin-top: 30px;"><?php echo $generatedBy; ?></p>
+                    <p style="font-size: 11px;">Reporting Officer</p>
+                </div>
+                <div>
+                    <p><strong>Noted by:</strong></p>
+                    <p style="margin-top: 30px;">P/CHIEF OF POLICE</p>
+                    <p style="font-size: 11px;">Manolo Fortich Police Station</p>
+                </div>
+            </div>
+            <p style="margin-top: 20px; font-size: 11px;">
+                <i class="fas fa-lock"></i> This document is CONFIDENTIAL and for official use only.
+            </p>
+        </div>
     </div>
 
     <!-- Footer -->
-    <footer class="footer">
+    <footer class="footer no-print">
         <div class="container">
             <p>© <?php echo date('Y'); ?> Philippine National Police - Manolo Fortich Police Station. All rights reserved.</p>
             <p>Department of the Interior and Local Government | Bukidnon Police Provincial Office</p>

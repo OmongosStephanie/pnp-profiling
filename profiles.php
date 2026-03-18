@@ -536,21 +536,22 @@ foreach ($profiles as $profile) {
             transform: translateY(-2px);
         }
 
-        .btn-icon.edit {
-            background: #c9a959;
-        }
-
-        .btn-icon.edit:hover {
-            background: #d4b36a;
-            transform: translateY(-2px);
-        }
-
         .btn-icon.delete {
             background: #dc3545;
         }
 
         .btn-icon.delete:hover {
             background: #c82333;
+            transform: translateY(-2px);
+        }
+
+        /* New Certificate Button */
+        .btn-icon.certificate {
+            background: #28a745;
+        }
+
+        .btn-icon.certificate:hover {
+            background: #218838;
             transform: translateY(-2px);
         }
 
@@ -720,6 +721,7 @@ foreach ($profiles as $profile) {
                     <li><a href="dashboard.php"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
                     <li><a href="profile_form.php"><i class="fas fa-plus-circle"></i> New Profile</a></li>
                     <li><a href="profiles.php" class="active"><i class="fas fa-list"></i> View Profiles</a></li>
+                    <li><a href="barangays.php"><i class="fas fa-map-marker-alt"></i> Barangays</a></li>
                     <li><a href="reports.php"><i class="fas fa-chart-bar"></i> Reports</a></li>
                     <?php if ($_SESSION['role'] == 'admin'): ?>
                     <li><a href="users.php"><i class="fas fa-users-cog"></i> User Management</a></li>
@@ -761,6 +763,7 @@ foreach ($profiles as $profile) {
                 <i class="fas fa-plus-circle"></i> Add New Profile
             </a>
         </div>
+
         <!-- Profiles Table -->
         <div class="table-container">
             <?php if (count($profiles) > 0): ?>
@@ -788,17 +791,18 @@ foreach ($profiles as $profile) {
                                 <td>
                                     <div class="action-buttons">
                                         <!-- View Button -->
-                                        <a href="view_profile.php?id=<?php echo $profile['id']; ?>" 
+                                        <a href="view_profile.php?id=<?php echo $profile['id']; ?>&return_to=profiles" 
                                            class="btn-icon view" 
                                            title="View Profile">
                                             <i class="fas fa-eye"></i>
                                         </a>
                                         
-                                        <!-- Edit Button -->
-                                        <a href="edit_profile.php?id=<?php echo $profile['id']; ?>" 
-                                           class="btn-icon edit" 
-                                           title="Edit Profile">
-                                            <i class="fas fa-edit"></i>
+                                        <!-- Certificate Button -->
+                                        <a href="certificate.php?id=<?php echo $profile['id']; ?>" 
+                                           class="btn-icon certificate" 
+                                           title="Generate Certificate of Completion"
+                                           target="_blank">
+                                            <i class="fas fa-certificate"></i>
                                         </a>
                                         
                                         <!-- Delete Button (Only for Admin) -->
