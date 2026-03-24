@@ -23,25 +23,29 @@ if (empty($selectedBarangay)) {
 $selectedYear = isset($_GET['year']) ? $_GET['year'] : '';
 $selectedMonth = isset($_GET['month']) ? $_GET['month'] : '';
 
-// Get distinct years from arrest_datetime for this barangay
-$yearQuery = "SELECT DISTINCT YEAR(arrest_datetime) as year 
-              FROM biographical_profiles 
-              WHERE present_address LIKE :barangay 
-              AND arrest_datetime IS NOT NULL 
-              ORDER BY year DESC";
+// Get distinct years from date_time_place_of_arrest for this barangay
+$yearQuery = "SELECT DISTINCT 
+               YEAR(STR_TO_DATE(date_time_place_of_arrest, '%Y-%m-%d %H:%i:%s')) as year 
+               FROM biographical_profiles 
+               WHERE present_address LIKE :barangay 
+               AND date_time_place_of_arrest IS NOT NULL 
+               AND date_time_place_of_arrest != ''
+               ORDER BY year DESC";
 $yearStmt = $db->prepare($yearQuery);
 $barangayParam = $selectedBarangay . '%';
 $yearStmt->bindParam(':barangay', $barangayParam);
 $yearStmt->execute();
 $years = $yearStmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Get distinct months from arrest_datetime for this barangay
-$monthQuery = "SELECT DISTINCT MONTH(arrest_datetime) as month, 
-               MONTHNAME(arrest_datetime) as month_name 
-               FROM biographical_profiles 
-               WHERE present_address LIKE :barangay 
-               AND arrest_datetime IS NOT NULL 
-               ORDER BY month";
+// Get distinct months from date_time_place_of_arrest for this barangay
+$monthQuery = "SELECT DISTINCT 
+                MONTH(STR_TO_DATE(date_time_place_of_arrest, '%Y-%m-%d %H:%i:%s')) as month, 
+                MONTHNAME(STR_TO_DATE(date_time_place_of_arrest, '%Y-%m-%d %H:%i:%s')) as month_name 
+                FROM biographical_profiles 
+                WHERE present_address LIKE :barangay 
+                AND date_time_place_of_arrest IS NOT NULL 
+                AND date_time_place_of_arrest != ''
+                ORDER BY month";
 $monthStmt = $db->prepare($monthQuery);
 $monthStmt->bindParam(':barangay', $barangayParam);
 $monthStmt->execute();
@@ -52,10 +56,10 @@ $query = "SELECT * FROM biographical_profiles
           WHERE present_address LIKE :barangay";
 
 if (!empty($selectedYear)) {
-    $query .= " AND YEAR(arrest_datetime) = :year";
+    $query .= " AND YEAR(STR_TO_DATE(date_time_place_of_arrest, '%Y-%m-%d %H:%i:%s')) = :year";
 }
 if (!empty($selectedMonth)) {
-    $query .= " AND MONTH(arrest_datetime) = :month";
+    $query .= " AND MONTH(STR_TO_DATE(date_time_place_of_arrest, '%Y-%m-%d %H:%i:%s')) = :month";
 }
 
 $query .= " ORDER BY created_at DESC";
@@ -78,7 +82,7 @@ $statsQuery = "SELECT
                 COUNT(*) as total,
                 SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active_count,
                 SUM(CASE WHEN status = 'delisted' THEN 1 ELSE 0 END) as delisted_count,
-                SUM(CASE WHEN arrest_datetime IS NOT NULL THEN 1 ELSE 0 END) as arrested_count
+                SUM(CASE WHEN date_time_place_of_arrest IS NOT NULL AND date_time_place_of_arrest != '' THEN 1 ELSE 0 END) as arrested_count
                FROM biographical_profiles 
                WHERE present_address LIKE :barangay";
 $statsStmt = $db->prepare($statsQuery);
@@ -89,6 +93,30 @@ $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
 // Get current date for report
 $currentDate = date('F d, Y');
 $generatedBy = $_SESSION['full_name'] . ' - ' . $_SESSION['rank'];
+
+// Function to format date_time_place_of_arrest
+function formatArrestDate($dateTimePlace) {
+    if (empty($dateTimePlace)) {
+        return null;
+    }
+    // Try to parse the date from the string
+    // Assuming format like "2024-03-15 14:30 - Poblacion" or similar
+    $parts = explode(' - ', $dateTimePlace);
+    $dateTime = $parts[0];
+    $place = isset($parts[1]) ? $parts[1] : '';
+    
+    if (!empty($dateTime)) {
+        $timestamp = strtotime($dateTime);
+        if ($timestamp !== false) {
+            return [
+                'date' => date('M d, Y', $timestamp),
+                'time' => date('h:i A', $timestamp),
+                'place' => $place
+            ];
+        }
+    }
+    return null;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -678,7 +706,6 @@ $generatedBy = $_SESSION['full_name'] . ' - ' . $_SESSION['rank'];
 
         /* PRINT STYLES */
         @media print {
-            /* Hide non-printable elements */
             .navbar-modern,
             .nav-menu,
             .btn-print,
@@ -690,7 +717,6 @@ $generatedBy = $_SESSION['full_name'] . ' - ' . $_SESSION['rank'];
                 display: none !important;
             }
 
-            /* Page settings */
             @page {
                 size: A4;
                 margin: 1.5cm;
@@ -704,48 +730,6 @@ $generatedBy = $_SESSION['full_name'] . ' - ' . $_SESSION['rank'];
                 print-color-adjust: exact;
             }
 
-            .main-content {
-                max-width: 100%;
-                margin: 0;
-                padding: 0;
-            }
-
-            .page-header {
-                margin-bottom: 20px;
-            }
-
-            .barangay-info {
-                break-inside: avoid;
-                page-break-inside: avoid;
-                border: 1px solid #ddd;
-                box-shadow: none;
-            }
-
-            .table-container {
-                break-inside: auto;
-                box-shadow: none;
-                border: 1px solid #ddd;
-            }
-
-            .modern-table th {
-                background: #f0f0f0 !important;
-                color: black !important;
-            }
-
-            .status-badge {
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-
-            .report-footer {
-                border: 1px solid #ddd;
-                box-shadow: none;
-                break-inside: avoid;
-                page-break-inside: avoid;
-                margin-top: 30px;
-            }
-
-            /* Force background colors */
             * {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
@@ -851,6 +835,18 @@ $generatedBy = $_SESSION['full_name'] . ' - ' . $_SESSION['rank'];
                     <div class="stat-value"><?php echo $stats['total']; ?></div>
                     <div class="stat-label">Total Profiles</div>
                 </div>
+                <div class="stat-item">
+                    <div class="stat-value" style="color: #28a745;"><?php echo $stats['active_count']; ?></div>
+                    <div class="stat-label">Active</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" style="color: #dc3545;"><?php echo $stats['delisted_count']; ?></div>
+                    <div class="stat-label">Delisted</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" style="color: #ffc107;"><?php echo $stats['arrested_count']; ?></div>
+                    <div class="stat-label">Arrests</div>
+                </div>
             </div>
         </div>
 
@@ -938,52 +934,53 @@ $generatedBy = $_SESSION['full_name'] . ' - ' . $_SESSION['rank'];
                                 <th>Full Name</th>
                                 <th>Alias</th>
                                 <th>Age</th>
-                                <th>Date of Arrest</th>
+                                <th>Date/Time of Arrest</th>
                                 <th>Place of Arrest</th>
                                 <th class="no-print">Actions</th>
-                            </tr>
-                        </thead>
+                             </thead>
                         <tbody>
-                            <?php foreach ($profiles as $profile): ?>
-                            <tr>
+                            <?php foreach ($profiles as $profile): 
+                                $arrestInfo = formatArrestDate($profile['date_time_place_of_arrest'] ?? '');
+                            ?>
+                             <tr>
                                 <td><?php echo htmlspecialchars($profile['full_name']); ?></td>
                                 <td><?php echo htmlspecialchars($profile['alias'] ?: '—'); ?></td>
                                 <td><?php echo $profile['age']; ?></td>
                                 <td>
-                                    <?php if (!empty($profile['arrest_datetime'])): ?>
-                                        <?php echo date('M d, Y', strtotime($profile['arrest_datetime'])); ?>
+                                    <?php if ($arrestInfo): ?>
+                                        <strong><?php echo $arrestInfo['date']; ?></strong>
                                         <span class="arrest-badge">
-                                            <i class="fas fa-clock"></i> <?php echo date('H:i', strtotime($profile['arrest_datetime'])); ?>
+                                            <i class="fas fa-clock"></i> <?php echo $arrestInfo['time']; ?>
                                         </span>
                                     <?php else: ?>
                                         <span class="no-arrest">Not arrested</span>
                                     <?php endif; ?>
                                 </td>
                                 <td>
-                                    <?php if (!empty($profile['arrest_place'])): ?>
+                                    <?php if ($arrestInfo && !empty($arrestInfo['place'])): ?>
+                                        <i class="fas fa-map-marker-alt" style="color: #c9a959; margin-right: 3px;"></i>
+                                        <?php echo htmlspecialchars($arrestInfo['place']); ?>
+                                    <?php elseif (!empty($profile['arrest_place'])): ?>
+                                        <i class="fas fa-map-marker-alt" style="color: #c9a959; margin-right: 3px;"></i>
                                         <?php echo htmlspecialchars($profile['arrest_place']); ?>
                                     <?php else: ?>
                                         <span class="no-arrest">Not specified</span>
                                     <?php endif; ?>
                                 </td>
                                 <td class="no-print">
-                                    <!-- Action Buttons -->
                                     <div class="action-btns">
-                                        <!-- View Button -->
                                         <a href="view_profile.php?id=<?php echo $profile['id']; ?>&return_to=barangay&barangay=<?php echo urlencode($selectedBarangay); ?>" 
                                            class="btn-icon view" 
                                            title="View Profile">
                                             <i class="fas fa-eye"></i>
                                         </a>
                                         
-                                        <!-- Edit Button -->
                                         <a href="edit_profile.php?id=<?php echo $profile['id']; ?>&return_to=barangay&barangay=<?php echo urlencode($selectedBarangay); ?>" 
                                            class="btn-icon edit" 
                                            title="Edit Profile">
                                             <i class="fas fa-edit"></i>
                                         </a>
                                         
-                                        <!-- Print Button -->
                                         <a href="view_profile.php?id=<?php echo $profile['id']; ?>&print=1" 
                                            class="btn-icon print" 
                                            title="Print Profile"
@@ -1046,7 +1043,6 @@ $generatedBy = $_SESSION['full_name'] . ' - ' . $_SESSION['rank'];
         </div>
     </div>
 
-    <!-- Footer -->
     <footer class="footer no-print">
         <div class="container">
             <p>© <?php echo date('Y'); ?> Philippine National Police - Manolo Fortich Police Station. All rights reserved.</p>

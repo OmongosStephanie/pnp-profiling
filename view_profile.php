@@ -73,6 +73,36 @@ $drugsPushedArray = !empty($profile['drugs_pushed']) ? explode(', ', $profile['d
 $drugTypesArray = !empty($profile['drugs_involved']) ? explode(', ', $profile['drugs_involved']) : [];
 $positionRolesArray = !empty($profile['position_roles']) ? explode(', ', $profile['position_roles']) : [];
 
+// Parse date_time_place_of_arrest to get formatted date and place
+$arrest_datetime_formatted = '';
+$arrest_place = '';
+$arrest_year = '';
+$arrest_month = '';
+$arrest_date_full = '';
+
+if (!empty($profile['date_time_place_of_arrest'])) {
+    $arrest_value = $profile['date_time_place_of_arrest'];
+    
+    // Try to parse the datetime
+    $timestamp = strtotime($arrest_value);
+    if ($timestamp !== false) {
+        $arrest_datetime_formatted = date('M d, Y H:i', $timestamp);
+        $arrest_year = date('Y', $timestamp);
+        $arrest_month = date('m', $timestamp);
+        $arrest_date_full = date('F d, Y', $timestamp);
+        
+        // If the value contains a place (separated by space), try to extract it
+        if (strpos($arrest_value, ' ') !== false) {
+            $parts = explode(' ', $arrest_value, 2);
+            if (count($parts) == 2 && strtotime($parts[0]) !== false) {
+                $arrest_place = $parts[1];
+            }
+        }
+    } else {
+        $arrest_datetime_formatted = $arrest_value;
+    }
+}
+
 // Determine back link and text
 if ($return_to == 'barangay' && !empty($barangay)) {
     $back_link = "barangay_profiles.php?barangay=" . urlencode($barangay);
@@ -368,6 +398,24 @@ $currentDate = date('F d, Y');
             color: #991b1b;
         }
 
+        /* Arrest Date Badge */
+        .arrest-date-link {
+            display: inline-block;
+            background: #fef3c7;
+            color: #92400e;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .arrest-date-link:hover {
+            background: #fde68a;
+            transform: translateY(-1px);
+        }
+
         /* Official Footer */
         .official-footer {
             margin-top: 30px;
@@ -433,38 +481,23 @@ $currentDate = date('F d, Y');
             margin-top: 20px;
         }
 
-        /* PRINT STYLES - Completely hide browser header/footer */
+        /* PRINT STYLES */
         @media print {
             @page {
                 size: A4;
                 margin: 1.5cm;
-                /* Remove all browser-generated content */
-                @top-left {
-                    content: "" !important;
-                }
-                @top-center {
-                    content: "" !important;
-                }
-                @top-right {
-                    content: "" !important;
-                }
-                @bottom-left {
-                    content: "" !important;
-                }
-                @bottom-center {
-                    content: "" !important;
-                }
-                @bottom-right {
-                    content: "" !important;
-                }
+                @top-left { content: "" !important; }
+                @top-center { content: "" !important; }
+                @top-right { content: "" !important; }
+                @bottom-left { content: "" !important; }
+                @bottom-center { content: "" !important; }
+                @bottom-right { content: "" !important; }
             }
 
-            /* Hide any default header/footer that might appear */
             @page :first {
                 margin-top: 1.5cm;
             }
 
-            /* Force hide all browser print decorations */
             html, body {
                 height: 100%;
                 margin: 0 !important;
@@ -478,7 +511,6 @@ $currentDate = date('F d, Y');
                 font-size: 10px;
             }
 
-            /* Hide all non-content elements */
             .action-bar,
             .btn,
             .no-print {
@@ -492,7 +524,6 @@ $currentDate = date('F d, Y');
                 background: white;
             }
 
-            /* Keep PNP header colors */
             .pnp-header {
                 background: #0a2f4d !important;
                 padding: 8px 12px !important;
@@ -504,7 +535,6 @@ $currentDate = date('F d, Y');
                 color: #c9a959 !important;
             }
 
-            /* Photo section */
             .photo-section {
                 border: 1px solid #000 !important;
                 margin-bottom: 15px !important;
@@ -521,12 +551,11 @@ $currentDate = date('F d, Y');
                 background: #f0f0f0 !important;
             }
 
-            /* Data sections */
-           .data-section {
-    border: 1px solid #000 !important;
-    break-inside: auto;
-    margin-bottom: 12px;
-}
+            .data-section {
+                border: 1px solid #000 !important;
+                break-inside: auto;
+                margin-bottom: 12px;
+            }
 
             .section-title {
                 background: #f0f0f0 !important;
@@ -548,7 +577,6 @@ $currentDate = date('F d, Y');
                 border: 1px solid #000 !important;
             }
 
-            /* Tags */
             .tag {
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
@@ -558,7 +586,6 @@ $currentDate = date('F d, Y');
             .tag.marijuana { background: #10b981 !important; }
             .tag.other { background: #6b7280 !important; }
 
-            /* Official footer */
             .official-footer {
                 border: 1px solid #000 !important;
                 page-break-inside: avoid;
@@ -574,7 +601,6 @@ $currentDate = date('F d, Y');
                 background: #000 !important;
             }
 
-            /* Reduce spacing */
             .main-content {
                 padding: 10px;
             }
@@ -583,7 +609,6 @@ $currentDate = date('F d, Y');
                 padding: 8px 10px;
             }
 
-            /* Force background colors to print */
             * {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
@@ -624,169 +649,189 @@ $currentDate = date('F d, Y');
 
             <!-- PERSONAL DATA Section -->
             <div class="data-section">
-               <div class="section-title">
+                <div class="section-title">
                     <i class="fas fa-user"></i> I. PERSONAL DATA
                 </div>
                 <div class="section-content">
                     <table class="personal-data-table">
-                        <tr>
+                          <tr>
                             <th>FULL NAME</th>
                             <td colspan="3"><?php echo displayValue($profile['full_name']); ?></td>
-                        </tr>
-                        <tr>
+                          </tr>
+                          <tr>
                             <th>ALIAS</th>
                             <td colspan="3"><?php echo displayValue($profile['alias']); ?></td>
-                        </tr>
-                        <tr>
+                          </tr>
+                          <tr>
                             <th>Name of Group/Gang Affiliation (if any)</th>
                             <td colspan="3"><?php echo displayValue($profile['group_affiliation']); ?></td>
-                        </tr>
-                        <tr>
+                          </tr>
+                          <tr>
                             <th>Position/Role (if any)</th>
                             <td colspan="3"><?php echo displayValue($profile['position_roles']); ?></td>
-                        </tr>
-                        <tr>
+                          </tr>
+                          <tr>
                             <th>AGE</th>
                             <td colspan="3"><?php echo displayValue($profile['age']); ?></td>
-                        </tr>
-                        <tr>
+                          </tr>
+                          <tr>
                             <th>SEX</th>
                             <td colspan="3"><?php echo displayValue($profile['sex']); ?></td>
-                        </tr>
-                        <tr>
+                          </tr>
+                          <tr>
                             <th>DATE OF BIRTH</th>
                             <td colspan="3"><?php echo !empty($profile['dob']) ? date('M d, Y', strtotime($profile['dob'])) : '—'; ?></td>
-                        </tr>
-                        <tr>
+                          </tr>
+                          <tr>
                             <th>PLACE OF BIRTH</th>
                             <td colspan="3"><?php echo displayValue($profile['pob']); ?></td>
-                        </tr>
-                        <tr>
+                          </tr>
+                          <tr>
                             <th>EDUCATIONAL ATTAINMENT</th>
                             <td colspan="3"><?php echo displayValue($profile['educational_attainment']); ?></td>
-                        </tr>
-                        <tr>
+                          </tr>
+                          <tr>
                             <th>OCCUPATION/PROFESSION</th>
                             <td colspan="3"><?php echo displayValue($profile['occupation']); ?></td>
-                        </tr>
-                        <tr>
+                          </tr>
+                          <tr>
                             <th>COMPANY/OFFICE</th>
                             <td colspan="3"><?php echo displayValue($profile['company_office']); ?></td>
-                        </tr>
-                        <tr>
+                          </tr>
+                          <tr>
                             <th>TECHNICAL SKILLS</th>
                             <td colspan="3"><?php echo displayValue($profile['technical_skills']); ?></td>
-                        </tr>
-                        <tr>
+                          </tr>
+                          <tr>
                             <th>ETHNIC GROUP</th>
                             <td colspan="3"><?php echo displayValue($profile['ethnic_group']); ?></td>
-                        </tr>
-                        <tr>
+                          </tr>
+                          <tr>
                             <th>LANGUAGE/DIALECT</th>
                             <td colspan="3"><?php echo displayValue($profile['languages']); ?></td>
-                        </tr>
-                        <tr>
+                          </tr>
+                          <tr>
                             <th>PRESENT ADDRESS</th>
                             <td colspan="3"><?php echo displayValue($profile['present_address']); ?></td>
-                        </tr>
-                        <tr>
+                          </tr>
+                          <tr>
                             <th>PROVINCIAL ADDRESS</th>
                             <td colspan="3"><?php echo displayValue($profile['provincial_address']); ?></td>
-                        </tr>
-                        <tr>
+                          </tr>
+                          <tr>
                             <th>CIVIL STATUS</th>
                             <td colspan="3"><?php echo displayValue($profile['civil_status']); ?></td>
-                        </tr>
-                        <tr>
+                          </tr>
+                          <tr>
                             <th>CITIZENSHIP</th>
                             <td colspan="3"><?php echo displayValue($profile['citizenship']); ?></td>
-                        </tr>
-                        <tr>
+                          </tr>
+                          <tr>
                             <th>RELIGION</th>
                             <td colspan="3"><?php echo displayValue($profile['religion']); ?></td>
-                        </tr>
-                        <tr>
+                          </tr>
+                          <tr>
                             <th>HEIGHT</th>
                             <td><?php echo displayValue($profile['height_ft']); ?></td>
                             <th>WEIGHT</th>
                             <td><?php echo displayValue($profile['weight_kg']); ?> kg</td>
-                        </tr>
-                        <tr>
+                          </tr>
+                          <tr>
                             <th>EYES</th>
                             <td><?php echo displayValue($profile['eyes_color']); ?></td>
                             <th>HAIR</th>
                             <td><?php echo displayValue($profile['hair_color']); ?></td>
-                        </tr>
-                        <tr>
+                          </tr>
+                          <tr>
                             <th>BUILT</th>
                             <td><?php echo displayValue($profile['built']); ?></td>
                             <th>COMPLEXION</th>
                             <td><?php echo displayValue($profile['complexion']); ?></td>
-                        </tr>
-                        <tr>
+                          </tr>
+                          <tr>
                             <th>DISTINGUISHING MARKS/TATTOO</th>
                             <td colspan="3"><?php echo displayValue($profile['distinguishing_marks']); ?></td>
-                        </tr>
-                        <tr>
+                          </tr>
+                          <tr>
                             <th>PREVIOUS ARREST</th>
                             <td colspan="3"><?php echo displayValue($profile['previous_arrest']); ?></td>
-                        </tr>
-                        <tr>
+                          </tr>
+                          <tr>
                             <th>SPECIFIC CHARGE</th>
                             <td colspan="3"><?php echo displayValue($profile['specific_charge']); ?></td>
-                        </tr>
-                        <tr>
+                          </tr>
+                          <tr>
                             <th>DATE/TIME OF ARREST</th>
-                            <td colspan="3"><?php echo !empty($profile['arrest_datetime']) ? date('M d, Y H:i', strtotime($profile['arrest_datetime'])) : '—'; ?></td>
-                        </tr>
-                        <tr>
+                            <td colspan="3">
+                                <?php if (!empty($arrest_datetime_formatted)): ?>
+                                    <a href="dashboard.php?year=<?php echo $arrest_year; ?>&month=<?php echo $arrest_month; ?>" class="arrest-date-link" target="_blank">
+                                        <i class="fas fa-calendar-check"></i> <?php echo $arrest_datetime_formatted; ?>
+                                    </a>
+                                <?php else: ?>
+                                    —
+                                <?php endif; ?>
+                            </td>
+                          </tr>
+                          <tr>
                             <th>PLACE OF ARREST</th>
-                            <td colspan="3"><?php echo displayValue($profile['arrest_place']); ?></td>
-                        </tr>
-                        <tr>
+                            <td colspan="3">
+                                <?php 
+                                if (!empty($arrest_place)) {
+                                    echo displayValue($arrest_place);
+                                } elseif (!empty($profile['date_time_place_of_arrest'])) {
+                                    echo displayValue($profile['date_time_place_of_arrest']);
+                                } else {
+                                    echo '—';
+                                }
+                                ?>
+                            </td>
+                          </tr>
+                          <tr>
                             <th>NAME OF ARRESTING OFFICER</th>
                             <td colspan="3"><?php echo displayValue($profile['arresting_officer']); ?></td>
-                        </tr>
-                        <tr>
+                          </tr>
+                          <tr>
                             <th>UNIT/OFFICE OF ARRESTING OFFICER</th>
                             <td colspan="3"><?php echo displayValue($profile['arresting_unit']); ?></td>
-                        </tr>
+                          </tr>
                     </table>
                 </div>
             </div>
 
             <!-- FAMILY BACKGROUND Section -->
             <div class="data-section">
-    <div class="section-title">
+                <div class="section-title">
                     <i class="fas fa-users"></i> II. FAMILY BACKGROUND
                 </div>
                 <div class="section-content">
                     <table class="compact-table">
-                        <tr>
+                        <thead>
                             <th style="width: 100px;"></th>
                             <th>Father</th>
                             <th>Mother</th>
-                        </tr>
-                        <tr>
-                            <td><strong>Name</strong></td>
-                            <td><?php echo displayValue($profile['father_name']); ?></td>
-                            <td><?php echo displayValue($profile['mother_name']); ?></td>
-                        </tr>
-                        <tr>
-                            <td><strong>Address</strong></td>
-                            <td><?php echo displayValue($profile['father_address']); ?></td>
-                            <td><?php echo displayValue($profile['mother_address']); ?></td>
-                        </tr>
-                        <tr>
-                            <td><strong>Occupation</strong></td>
-                            <td><?php echo displayValue($profile['father_occupation']); ?></td>
-                            <td><?php echo displayValue($profile['mother_occupation']); ?></td>
-                        </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Name</strong></td>
+                                <td><?php echo displayValue($profile['father_name']); ?></td>
+                                <td><?php echo displayValue($profile['mother_name']); ?></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Address</strong></td>
+                                <td><?php echo displayValue($profile['father_address']); ?></td>
+                                <td><?php echo displayValue($profile['mother_address']); ?></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Occupation</strong></td>
+                                <td><?php echo displayValue($profile['father_occupation']); ?></td>
+                                <td><?php echo displayValue($profile['mother_occupation']); ?></td>
+                            </tr>
+                        </tbody>
                     </table>
                     
                     <div style="margin-top: 10px;">
                         <table class="compact-table">
-                            <tr>
+                            <thead>
                                 <th style="width: 100px;">Spouse</th>
                                 <td><?php echo displayValue($profile['spouse_name']); ?></td>
                                 <th>Age</th>
@@ -795,7 +840,7 @@ $currentDate = date('F d, Y');
                                 <td><?php echo displayValue($profile['spouse_occupation']); ?></td>
                                 <th>Address</th>
                                 <td><?php echo displayValue($profile['spouse_address']); ?></td>
-                            </tr>
+                            </thead>
                         </table>
                     </div>
                     
@@ -841,7 +886,7 @@ $currentDate = date('F d, Y');
 
             <!-- TACTICAL INFORMATION Section -->
             <div class="data-section">
-    <div class="section-title">
+                <div class="section-title">
                     <i class="fas fa-info-circle"></i> III. TACTICAL INFORMATION
                 </div>
                 <div class="section-content">
@@ -915,7 +960,7 @@ $currentDate = date('F d, Y');
 
             <!-- SUMMARY & RECOMMENDATION Section -->
             <div class="data-section">
-    <div class="section-title">
+                <div class="section-title">
                     <i class="fas fa-file-alt"></i> IV. SUMMARY & RECOMMENDATION
                 </div>
                 <div class="section-content">
@@ -948,14 +993,15 @@ $currentDate = date('F d, Y');
                 </div>
             </div>
 
-        <!-- Action Buttons - Smart Back Button -->
-        <div class="action-bar no-print">
-            <a href="<?php echo $back_link; ?>" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> <?php echo $back_text; ?>
-            </a>
-            <button onclick="window.print()" class="btn btn-print">
-                <i class="fas fa-print"></i> Print Profile
-            </button>
+            <!-- Action Buttons -->
+            <div class="action-bar no-print">
+                <a href="<?php echo $back_link; ?>" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> <?php echo $back_text; ?>
+                </a>
+                <button onclick="window.print()" class="btn btn-print">
+                    <i class="fas fa-print"></i> Print Profile
+                </button>
+            </div>
         </div>
     </div>
 </body>

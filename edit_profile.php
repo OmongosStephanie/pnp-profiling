@@ -69,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['profile_picture'])) {
                 
                 // Set success message in session and redirect
                 $_SESSION['success_message'] = "Profile picture updated successfully!";
-                header("Location: profiles.php");
+                header("Location: view_profile.php?id=" . $id);
                 exit();
             } else {
                 $error = "Sorry, there was an error uploading your file.";
@@ -106,7 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) 
             $drug_types = '';
         }
         
-        // Update main profile
+        // Update main profile - USING CORRECT FIELD NAMES
         $query = "UPDATE biographical_profiles SET
             full_name = :full_name,
             alias = :alias,
@@ -137,8 +137,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) 
             distinguishing_marks = :distinguishing_marks,
             previous_arrest = :previous_arrest,
             specific_charge = :specific_charge,
-            arrest_datetime = :arrest_datetime,
-            arrest_place = :arrest_place,
+            date_time_place_of_arrest = :date_time_place_of_arrest,
             arresting_officer = :arresting_officer,
             arresting_unit = :arresting_unit,
             drugs_involved = :drugs_involved,
@@ -169,7 +168,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) 
         
         $stmt = $db->prepare($query);
         
-        // Prepare parameters with null coalescing operators
+        // Prepare parameters with null coalescing operators - USING CORRECT FIELD NAMES
         $params = [
             ':id' => $id,
             ':full_name' => $_POST['full_name'] ?? '',
@@ -201,8 +200,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) 
             ':distinguishing_marks' => $_POST['distinguishing_marks'] ?? '',
             ':previous_arrest' => $_POST['previous_arrest'] ?? '',
             ':specific_charge' => $_POST['specific_charge'] ?? '',
-            ':arrest_datetime' => isset($_POST['arrest_datetime']) && $_POST['arrest_datetime'] !== '' ? $_POST['arrest_datetime'] : null,
-            ':arrest_place' => $_POST['arrest_place'] ?? '',
+            ':date_time_place_of_arrest' => isset($_POST['date_time_place_of_arrest']) && $_POST['date_time_place_of_arrest'] !== '' ? $_POST['date_time_place_of_arrest'] : null,
             ':arresting_officer' => $_POST['arresting_officer'] ?? '',
             ':arresting_unit' => $_POST['arresting_unit'] ?? '',
             ':drugs_involved' => $drug_types,
@@ -264,8 +262,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) 
         // Set success message in session
         $_SESSION['success_message'] = "Profile updated successfully!";
         
-        // Redirect to profiles.php
-        header("Location: profiles.php");
+        // Redirect to view profile
+        header("Location: view_profile.php?id=" . $id);
         exit();
         
     } catch (Exception $e) {
@@ -287,6 +285,17 @@ function isDrugPushed($drug, $drugsPushedArray) {
 // Function to safely display value in inputs
 function inputValue($value) {
     return htmlspecialchars($value ?? '');
+}
+
+// Format date_time_place_of_arrest for datetime-local input
+$arrest_datetime = '';
+if (!empty($profile['date_time_place_of_arrest'])) {
+    $timestamp = strtotime($profile['date_time_place_of_arrest']);
+    if ($timestamp) {
+        $arrest_datetime = date('Y-m-d\TH:i', $timestamp);
+    } else {
+        $arrest_datetime = $profile['date_time_place_of_arrest'];
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -1008,7 +1017,7 @@ function inputValue($value) {
                                 <textarea class="form-control" name="distinguishing_marks" rows="2"><?php echo inputValue($profile['distinguishing_marks']); ?></textarea>
                             </div>
                             
-                            <!-- Arrest Record Fields (Corrected) -->
+                            <!-- Arrest Record Fields - USING CORRECT FIELD NAMES -->
                             <div class="form-field full-width">
                                 <label>PREVIOUS ARREST RECORD</label>
                                 <textarea class="form-control" name="previous_arrest" rows="2"><?php echo inputValue($profile['previous_arrest']); ?></textarea>
@@ -1020,13 +1029,9 @@ function inputValue($value) {
                             </div>
                             
                             <div class="form-field">
-                                <label>DATE/TIME OF ARREST</label>
-                                <input type="datetime-local" class="form-control" name="arrest_datetime" value="<?php echo inputValue($profile['arrest_datetime']); ?>">
-                            </div>
-                            
-                            <div class="form-field">
-                                <label>PLACE OF ARREST</label>
-                                <input type="text" class="form-control" name="arrest_place" value="<?php echo inputValue($profile['arrest_place']); ?>">
+                                <label>DATE/TIME/PLACE OF ARREST</label>
+                                <input type="datetime-local" class="form-control" name="date_time_place_of_arrest" value="<?php echo $arrest_datetime; ?>">
+                                <small class="text-muted">Enter date, time, and place of arrest</small>
                             </div>
                             
                             <div class="form-field">
@@ -1049,41 +1054,43 @@ function inputValue($value) {
                     </div>
                     <div class="section-content">
                         <table class="compact-table">
-                            <tr>
+                             <thead>
                                 <th style="width: 100px;"></th>
                                 <th>Father</th>
                                 <th>Mother</th>
-                            </tr>
-                            <tr>
-                                <td><strong>Name</strong></td>
-                                <td><input type="text" class="form-control" name="father_name" value="<?php echo inputValue($profile['father_name']); ?>"></td>
-                                <td><input type="text" class="form-control" name="mother_name" value="<?php echo inputValue($profile['mother_name']); ?>"></td>
-                            </tr>
-                            <tr>
-                                <td><strong>Known Address</strong></td>
-                                <td><input type="text" class="form-control" name="father_address" value="<?php echo inputValue($profile['father_address']); ?>"></td>
-                                <td><input type="text" class="form-control" name="mother_address" value="<?php echo inputValue($profile['mother_address']); ?>"></td>
-                            </tr>
-                            <tr>
-                                <td><strong>Date of Birth</strong></td>
-                                <td><input type="date" class="form-control" name="father_dob" value="<?php echo inputValue($profile['father_dob']); ?>"></td>
-                                <td><input type="date" class="form-control" name="mother_dob" value="<?php echo inputValue($profile['mother_dob']); ?>"></td>
-                            </tr>
-                            <tr>
-                                <td><strong>Age</strong></td>
-                                <td><input type="number" class="form-control" name="father_age" value="<?php echo inputValue($profile['father_age']); ?>"></td>
-                                <td><input type="number" class="form-control" name="mother_age" value="<?php echo inputValue($profile['mother_age']); ?>"></td>
-                            </tr>
-                            <tr>
-                                <td><strong>Occupation</strong></td>
-                                <td><input type="text" class="form-control" name="father_occupation" value="<?php echo inputValue($profile['father_occupation']); ?>"></td>
-                                <td><input type="text" class="form-control" name="mother_occupation" value="<?php echo inputValue($profile['mother_occupation']); ?>"></td>
-                            </tr>
-                        </table>
+                             </thead>
+                             <tbody>
+                                 <tr>
+                                    <td><strong>Name</strong></td>
+                                    <td><input type="text" class="form-control" name="father_name" value="<?php echo inputValue($profile['father_name']); ?>"></td>
+                                    <td><input type="text" class="form-control" name="mother_name" value="<?php echo inputValue($profile['mother_name']); ?>"></td>
+                                 </tr>
+                                 <tr>
+                                    <td><strong>Known Address</strong></td>
+                                    <td><input type="text" class="form-control" name="father_address" value="<?php echo inputValue($profile['father_address']); ?>"></td>
+                                    <td><input type="text" class="form-control" name="mother_address" value="<?php echo inputValue($profile['mother_address']); ?>"></td>
+                                 </tr>
+                                 <tr>
+                                    <td><strong>Date of Birth</strong></td>
+                                    <td><input type="date" class="form-control" name="father_dob" value="<?php echo inputValue($profile['father_dob']); ?>"></td>
+                                    <td><input type="date" class="form-control" name="mother_dob" value="<?php echo inputValue($profile['mother_dob']); ?>"></td>
+                                 </tr>
+                                 <tr>
+                                    <td><strong>Age</strong></td>
+                                    <td><input type="number" class="form-control" name="father_age" value="<?php echo inputValue($profile['father_age']); ?>"></td>
+                                    <td><input type="number" class="form-control" name="mother_age" value="<?php echo inputValue($profile['mother_age']); ?>"></td>
+                                 </tr>
+                                 <tr>
+                                    <td><strong>Occupation</strong></td>
+                                    <td><input type="text" class="form-control" name="father_occupation" value="<?php echo inputValue($profile['father_occupation']); ?>"></td>
+                                    <td><input type="text" class="form-control" name="mother_occupation" value="<?php echo inputValue($profile['mother_occupation']); ?>"></td>
+                                 </tr>
+                             </tbody>
+                         </table>
                         
                         <div style="margin-top: 15px;">
                             <table class="compact-table">
-                                <tr>
+                                 <tr>
                                     <th style="width: 100px;">Spouse</th>
                                     <td><input type="text" class="form-control" name="spouse_name" value="<?php echo inputValue($profile['spouse_name']); ?>"></td>
                                     <th>Age</th>
@@ -1092,8 +1099,8 @@ function inputValue($value) {
                                     <td><input type="text" class="form-control" name="spouse_occupation" value="<?php echo inputValue($profile['spouse_occupation']); ?>"></td>
                                     <th>Address</th>
                                     <td><input type="text" class="form-control" name="spouse_address" value="<?php echo inputValue($profile['spouse_address']); ?>"></td>
-                                </tr>
-                            </table>
+                                 </tr>
+                             </table>
                         </div>
                         
                         <div style="margin-top: 15px;">
@@ -1101,14 +1108,14 @@ function inputValue($value) {
                             <div id="siblingsContainer">
                                 <table class="compact-table" style="margin-top: 5px;" id="siblingsTable">
                                     <thead>
-                                        <tr>
+                                         <tr>
                                             <th>Name</th>
                                             <th>Age</th>
                                             <th>Occupation</th>
                                             <th>Status</th>
                                             <th>Address</th>
                                             <th>Action</th>
-                                        </tr>
+                                         </tr>
                                     </thead>
                                     <tbody>
                                         <?php if (count($siblings) > 0): ?>
@@ -1133,7 +1140,7 @@ function inputValue($value) {
                                             </tr>
                                         <?php endif; ?>
                                     </tbody>
-                                </table>
+                                 </table>
                                 <button type="button" class="btn btn-secondary btn-sm" style="margin-top: 10px;" onclick="addSiblingRow()">
                                     <i class="fas fa-plus"></i> Add Sibling
                                 </button>
@@ -1275,11 +1282,11 @@ function inputValue($value) {
                                 <label>OTHER REVELATIONS</label>
                                 <textarea class="form-control" name="other_revelations" rows="3"><?php echo inputValue($profile['other_revelations']); ?></textarea>
                             </div>
-                                     <div class="form-field full-width">
+                            
+                            <div class="form-field full-width">
                                 <label>RECOMMENDATION</label>
                                 <textarea class="form-control" name="recommendation" rows="3"><?php echo inputValue($profile['recommendation']); ?></textarea>
                             </div>
-                     
                         </div>
                     </div>
                 </div>
@@ -1292,7 +1299,7 @@ function inputValue($value) {
                     <a href="view_profile.php?id=<?php echo $id; ?>" class="btn btn-info">
                         <i class="fas fa-eye"></i> View Profile
                     </a>
-                    <a href="barangay_profiles.php" class="btn btn-secondary">
+                    <a href="profiles.php" class="btn btn-secondary">
                         <i class="fas fa-times"></i> Cancel
                     </a>
                 </div>

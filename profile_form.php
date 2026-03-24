@@ -49,6 +49,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) 
         // Begin transaction
         $db->beginTransaction();
         
+        // Get profile picture from session if exists
+        $profile_picture = isset($_SESSION['profile_picture']) ? $_SESSION['profile_picture'] : null;
+        
         // Process position_roles - combine multiple checkboxes
         if (isset($_POST['position_roles']) && is_array($_POST['position_roles'])) {
             $position_roles = implode(', ', $_POST['position_roles']);
@@ -67,16 +70,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) 
             $drug_types = '';
         }
         
-        // Get profile picture from session if exists
-        $profile_picture = isset($_SESSION['profile_picture']) ? $_SESSION['profile_picture'] : null;
-        
         $query = "INSERT INTO biographical_profiles (
             full_name, alias, group_affiliation, position_roles, age, sex, dob, pob,
             educational_attainment, occupation, company_office, technical_skills,
             ethnic_group, languages, present_address, provincial_address,
             civil_status, citizenship, religion, height_cm, weight_kg, height_ft,
             eyes_color, hair_color, built, complexion, distinguishing_marks,
-            previous_arrest, specific_charge, arrest_datetime, arrest_place,
+            previous_arrest, specific_charge, date_time_place_of_arrest,
             arresting_officer, arresting_unit, drugs_involved,
             source_relationship, source_address, source_name, source_nickname, 
             source_full_address, source_other_drugs, subgroup_name, specific_aor,
@@ -91,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) 
             :ethnic_group, :languages, :present_address, :provincial_address,
             :civil_status, :citizenship, :religion, :height_cm, :weight_kg, :height_ft,
             :eyes_color, :hair_color, :built, :complexion, :distinguishing_marks,
-            :previous_arrest, :specific_charge, :arrest_datetime, :arrest_place,
+            :previous_arrest, :specific_charge, :date_time_place_of_arrest,
             :arresting_officer, :arresting_unit, :drugs_involved,
             :source_relationship, :source_address, :source_name, :source_nickname,
             :source_full_address, :source_other_drugs, :subgroup_name, :specific_aor,
@@ -133,12 +133,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) 
             ':built' => $_POST['built'] ?? '',
             ':complexion' => $_POST['complexion'] ?? '',
             ':distinguishing_marks' => $_POST['distinguishing_marks'] ?? '',
-            ':previous_arrest' => $_POST['previous_arrest'] ?? '',
+            ':previous_arrest' => $_POST['previous_arrest_record'] ?? '',
             ':specific_charge' => $_POST['specific_charge'] ?? '',
-            ':arrest_datetime' => isset($_POST['arrest_datetime']) ? $_POST['arrest_datetime'] : null,
-            ':arrest_place' => $_POST['arrest_place'] ?? '',
-            ':arresting_officer' => $_POST['arresting_officer'] ?? '',
-            ':arresting_unit' => $_POST['arresting_unit'] ?? '',
+            ':date_time_place_of_arrest' => $_POST['date_time_place_of_arrest'] ?? null,
+            ':arresting_officer' => $_POST['arresting_officer_name'] ?? '',
+            ':arresting_unit' => $_POST['arresting_officer_unit'] ?? '',
             ':drugs_involved' => $drug_types ?? '',
             ':source_relationship' => $_POST['source_relationship'] ?? null,
             ':source_address' => $_POST['source_address'] ?? null,
@@ -222,7 +221,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) 
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     
     <style>
-        /* Global Styles */
+        /* All existing CSS styles remain the same */
         * {
             margin: 0;
             padding: 0;
@@ -237,7 +236,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) 
             padding: 20px;
         }
 
-        /* Form Container */
         .form-container {
             max-width: 1200px;
             margin: 0 auto;
@@ -245,7 +243,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) 
             box-shadow: 0 4px 20px rgba(0,0,0,0.08);
         }
 
-        /* Official PNP Header */
         .pnp-header {
             background: #0a2f4d;
             color: white;
@@ -310,7 +307,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) 
             font-weight: 500;
         }
 
-        /* Main Content */
         .main-content {
             padding: 20px;
         }
@@ -332,7 +328,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) 
             margin-top: 5px;
         }
 
-        /* PHOTO SECTION - Right Aligned */
         .photo-section {
             border: 1px solid #e2e8f0;
             border-radius: 8px;
@@ -412,7 +407,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) 
             display: none;
         }
 
-        /* Section Styles */
         .form-section {
             border: 1px solid #e2e8f0;
             border-radius: 8px;
@@ -441,7 +435,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) 
             padding: 20px;
         }
 
-        /* Form Grid */
         .form-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -488,7 +481,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) 
             min-height: 60px;
         }
 
-        /* Table Styles */
         .table-container {
             overflow-x: auto;
             margin-top: 10px;
@@ -522,7 +514,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) 
             font-size: 12px;
         }
 
-        /* Checkbox Container */
         .checkbox-container {
             background: #f8fafc;
             border: 1px solid #e2e8f0;
@@ -560,7 +551,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) 
             color: #334155;
         }
 
-        /* Buttons */
         .btn {
             padding: 6px 12px;
             border-radius: 20px;
@@ -608,7 +598,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) 
             background: #fecaca;
         }
 
-        /* Action Bar */
         .action-bar {
             padding: 20px;
             display: flex;
@@ -624,7 +613,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) 
             font-size: 13px;
         }
 
-        /* Alerts */
         .alert {
             background: #f8fafc;
             border-left: 4px solid #0f172a;
@@ -647,7 +635,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) 
             background: #fef2f2;
         }
 
-        /* Footer */
         .form-footer {
             text-align: center;
             padding: 20px;
@@ -749,18 +736,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) 
                                        placeholder="Enter complete name" value="<?php echo isset($_POST['full_name']) ? htmlspecialchars($_POST['full_name']) : ''; ?>">
                             </div>
                             
-                          <div class="form-field full-width">
+                            <div class="form-field full-width">
                                 <label>Alias <span style="color: #ef4444;">*</span></label>
                                 <input type="text" class="form-control" name="alias" required 
                                        placeholder="Enter alias" value="<?php echo isset($_POST['alias']) ? htmlspecialchars($_POST['alias']) : ''; ?>">
                             </div>
                             
-                             <div class="form-field full-width">
+                            <div class="form-field full-width">
                                 <label>Name of Group/Gang Affiliation <span style="color: #ef4444;">*</span></label>
                                 <input type="text" class="form-control" name="group_affiliation" required 
                                        placeholder="Enter group/gang affiliation" value="<?php echo isset($_POST['group_affiliation']) ? htmlspecialchars($_POST['group_affiliation']) : ''; ?>">
                             </div>
-                            
                             
                             <div class="form-field full-width">
                                 <label>Position/Role</label>
@@ -785,11 +771,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) 
                                 </div>
                             </div>
                             
-                            <div class="form-field full-width">
+                            <div class="form-field">
                                 <label>Age<span style="color: #ef4444;">*</span></label>
                                 <input type="number" class="form-control" name="age" required
                                        placeholder="Enter age" value="<?php echo isset($_POST['age']) ? htmlspecialchars($_POST['age']) : ''; ?>">
                             </div> 
+                            
                             <div class="form-field">
                                 <label>Sex <span style="color: #ef4444;">*</span></label>
                                 <select class="form-select" name="sex" required>
@@ -828,13 +815,25 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) 
                             
                             <div class="form-field">
                                 <label>Occupation</label>
-                                <input type="text" class="form-control" name="occupation"
-                                       value="<?php echo isset($_POST['occupation']) ? htmlspecialchars($_POST['occupation']) : ''; ?>">
+                                <select class="form-select" name="occupation">
+                                    <option value="">Select Occupation</option>
+                                    <option value="Laborer" <?php echo (isset($_POST['occupation']) && $_POST['occupation'] == 'Laborer') ? 'selected' : ''; ?>>Laborer</option>
+                                    <option value="Farmer" <?php echo (isset($_POST['occupation']) && $_POST['occupation'] == 'Farmer') ? 'selected' : ''; ?>>Farmer</option>
+                                    <option value="Fisherman" <?php echo (isset($_POST['occupation']) && $_POST['occupation'] == 'Fisherman') ? 'selected' : ''; ?>>Fisherman</option>
+                                    <option value="Driver" <?php echo (isset($_POST['occupation']) && $_POST['occupation'] == 'Driver') ? 'selected' : ''; ?>>Driver</option>
+                                    <option value="Government Employee" <?php echo (isset($_POST['occupation']) && $_POST['occupation'] == 'Government Employee') ? 'selected' : ''; ?>>Government Employee</option>
+                                    <option value="Private Employee" <?php echo (isset($_POST['occupation']) && $_POST['occupation'] == 'Private Employee') ? 'selected' : ''; ?>>Private Employee</option>
+                                    <option value="Self-Employed" <?php echo (isset($_POST['occupation']) && $_POST['occupation'] == 'Self-Employed') ? 'selected' : ''; ?>>Self-Employed</option>
+                                    <option value="Unemployed" <?php echo (isset($_POST['occupation']) && $_POST['occupation'] == 'Unemployed') ? 'selected' : ''; ?>>Unemployed</option>
+                                    <option value="Student" <?php echo (isset($_POST['occupation']) && $_POST['occupation'] == 'Student') ? 'selected' : ''; ?>>Student</option>
+                                    <option value="Other" <?php echo (isset($_POST['occupation']) && $_POST['occupation'] == 'Other') ? 'selected' : ''; ?>>Other</option>
+                                </select>
                             </div>
                             
                             <div class="form-field">
                                 <label>Company/Office</label>
                                 <input type="text" class="form-control" name="company_office"
+                                       placeholder="If employed, enter company/office name"
                                        value="<?php echo isset($_POST['company_office']) ? htmlspecialchars($_POST['company_office']) : ''; ?>">
                             </div>
                             
@@ -847,27 +846,37 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) 
                             
                             <div class="form-field">
                                 <label>Ethnic Group</label>
-                                <input type="text" class="form-control" name="ethnic_group" 
-                                       placeholder="Enter ethnic group"
-                                       value="<?php echo isset($_POST['ethnic_group']) ? htmlspecialchars($_POST['ethnic_group']) : ''; ?>">
+                                <select class="form-select" name="ethnic_group">
+                                    <option value="">Select Ethnic Group</option>
+                                    <option value="Cebuano" <?php echo (isset($_POST['ethnic_group']) && $_POST['ethnic_group'] == 'Cebuano') ? 'selected' : ''; ?>>Cebuano</option>
+                                    <option value="Bisaya" <?php echo (isset($_POST['ethnic_group']) && $_POST['ethnic_group'] == 'Bisaya') ? 'selected' : ''; ?>>Bisaya</option>
+                                    <option value="Ilocano" <?php echo (isset($_POST['ethnic_group']) && $_POST['ethnic_group'] == 'Ilocano') ? 'selected' : ''; ?>>Ilocano</option>
+                                    <option value="Tagalog" <?php echo (isset($_POST['ethnic_group']) && $_POST['ethnic_group'] == 'Tagalog') ? 'selected' : ''; ?>>Tagalog</option>
+                                    <option value="Waray" <?php echo (isset($_POST['ethnic_group']) && $_POST['ethnic_group'] == 'Waray') ? 'selected' : ''; ?>>Waray</option>
+                                    <option value="Hiligaynon" <?php echo (isset($_POST['ethnic_group']) && $_POST['ethnic_group'] == 'Hiligaynon') ? 'selected' : ''; ?>>Hiligaynon</option>
+                                    <option value="Bukidnon" <?php echo (isset($_POST['ethnic_group']) && $_POST['ethnic_group'] == 'Bukidnon') ? 'selected' : ''; ?>>Bukidnon</option>
+                                    <option value="Other" <?php echo (isset($_POST['ethnic_group']) && $_POST['ethnic_group'] == 'Other') ? 'selected' : ''; ?>>Other</option>
+                                </select>
                             </div>
                             
                             <div class="form-field">
                                 <label>Languages/Dialects</label>
                                 <input type="text" class="form-control" name="languages" 
-                                       placeholder="Enter languages/dialects"
+                                       placeholder="Enter languages/dialects (e.g., Cebuano, English, Tagalog)"
                                        value="<?php echo isset($_POST['languages']) ? htmlspecialchars($_POST['languages']) : ''; ?>">
                             </div>
                             
                             <div class="form-field full-width">
                                 <label>Present Address</label>
                                 <input type="text" class="form-control" name="present_address"
+                                       placeholder="House No., Street, Barangay, City/Municipality"
                                        value="<?php echo isset($_POST['present_address']) ? htmlspecialchars($_POST['present_address']) : ''; ?>">
                             </div>
                             
                             <div class="form-field full-width">
                                 <label>Provincial Address</label>
                                 <input type="text" class="form-control" name="provincial_address"
+                                       placeholder="House No., Street, Barangay, City/Municipality"
                                        value="<?php echo isset($_POST['provincial_address']) ? htmlspecialchars($_POST['provincial_address']) : ''; ?>">
                             </div>
                             
@@ -884,14 +893,25 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) 
                             
                             <div class="form-field">
                                 <label>Citizenship</label>
-                                <input type="text" class="form-control" name="citizenship"
-                                       value="<?php echo isset($_POST['citizenship']) ? htmlspecialchars($_POST['citizenship']) : 'Filipino'; ?>">
+                                <select class="form-select" name="citizenship">
+                                    <option value="Filipino" <?php echo (isset($_POST['citizenship']) && $_POST['citizenship'] == 'Filipino') ? 'selected' : ''; ?>>Filipino</option>
+                                    <option value="Dual Citizenship" <?php echo (isset($_POST['citizenship']) && $_POST['citizenship'] == 'Dual Citizenship') ? 'selected' : ''; ?>>Dual Citizenship</option>
+                                    <option value="Other" <?php echo (isset($_POST['citizenship']) && $_POST['citizenship'] == 'Other') ? 'selected' : ''; ?>>Other</option>
+                                </select>
                             </div>
                             
                             <div class="form-field">
                                 <label>Religion</label>
-                                <input type="text" class="form-control" name="religion"
-                                       value="<?php echo isset($_POST['religion']) ? htmlspecialchars($_POST['religion']) : ''; ?>">
+                                <select class="form-select" name="religion">
+                                    <option value="">Select Religion</option>
+                                    <option value="Roman Catholic" <?php echo (isset($_POST['religion']) && $_POST['religion'] == 'Roman Catholic') ? 'selected' : ''; ?>>Roman Catholic</option>
+                                    <option value="Islam" <?php echo (isset($_POST['religion']) && $_POST['religion'] == 'Islam') ? 'selected' : ''; ?>>Islam</option>
+                                    <option value="Iglesia Ni Cristo" <?php echo (isset($_POST['religion']) && $_POST['religion'] == 'Iglesia Ni Cristo') ? 'selected' : ''; ?>>Iglesia Ni Cristo</option>
+                                    <option value="Born Again Christian" <?php echo (isset($_POST['religion']) && $_POST['religion'] == 'Born Again Christian') ? 'selected' : ''; ?>>Born Again Christian</option>
+                                    <option value="Seventh Day Adventist" <?php echo (isset($_POST['religion']) && $_POST['religion'] == 'Seventh Day Adventist') ? 'selected' : ''; ?>>Seventh Day Adventist</option>
+                                    <option value="Buddhist" <?php echo (isset($_POST['religion']) && $_POST['religion'] == 'Buddhist') ? 'selected' : ''; ?>>Buddhist</option>
+                                    <option value="Other" <?php echo (isset($_POST['religion']) && $_POST['religion'] == 'Other') ? 'selected' : ''; ?>>Other</option>
+                                </select>
                             </div>
                             
                             <div class="form-field">
@@ -903,21 +923,34 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) 
                             <div class="form-field">
                                 <label>Weight (kg)</label>
                                 <input type="number" step="0.01" class="form-control" name="weight_kg"
+                                       placeholder="Enter weight in kilograms"
                                        value="<?php echo isset($_POST['weight_kg']) ? htmlspecialchars($_POST['weight_kg']) : ''; ?>">
                             </div>
                             
                             <div class="form-field">
                                 <label>Eyes Color</label>
-                                <input type="text" class="form-control" name="eyes_color" 
-                                       placeholder="Enter eyes color"
-                                       value="<?php echo isset($_POST['eyes_color']) ? htmlspecialchars($_POST['eyes_color']) : ''; ?>">
+                                <select class="form-select" name="eyes_color">
+                                    <option value="">Select Eye Color</option>
+                                    <option value="Black" <?php echo (isset($_POST['eyes_color']) && $_POST['eyes_color'] == 'Black') ? 'selected' : ''; ?>>Black</option>
+                                    <option value="Brown" <?php echo (isset($_POST['eyes_color']) && $_POST['eyes_color'] == 'Brown') ? 'selected' : ''; ?>>Brown</option>
+                                    <option value="Dark Brown" <?php echo (isset($_POST['eyes_color']) && $_POST['eyes_color'] == 'Dark Brown') ? 'selected' : ''; ?>>Dark Brown</option>
+                                    <option value="Hazel" <?php echo (isset($_POST['eyes_color']) && $_POST['eyes_color'] == 'Hazel') ? 'selected' : ''; ?>>Hazel</option>
+                                    <option value="Blue" <?php echo (isset($_POST['eyes_color']) && $_POST['eyes_color'] == 'Blue') ? 'selected' : ''; ?>>Blue</option>
+                                    <option value="Gray" <?php echo (isset($_POST['eyes_color']) && $_POST['eyes_color'] == 'Gray') ? 'selected' : ''; ?>>Gray</option>
+                                </select>
                             </div>
                             
                             <div class="form-field">
                                 <label>Hair Color</label>
-                                <input type="text" class="form-control" name="hair_color" 
-                                       placeholder="Enter hair color"
-                                       value="<?php echo isset($_POST['hair_color']) ? htmlspecialchars($_POST['hair_color']) : ''; ?>">
+                                <select class="form-select" name="hair_color">
+                                    <option value="">Select Hair Color</option>
+                                    <option value="Black" <?php echo (isset($_POST['hair_color']) && $_POST['hair_color'] == 'Black') ? 'selected' : ''; ?>>Black</option>
+                                    <option value="Brown" <?php echo (isset($_POST['hair_color']) && $_POST['hair_color'] == 'Brown') ? 'selected' : ''; ?>>Brown</option>
+                                    <option value="Dark Brown" <?php echo (isset($_POST['hair_color']) && $_POST['hair_color'] == 'Dark Brown') ? 'selected' : ''; ?>>Dark Brown</option>
+                                    <option value="Gray" <?php echo (isset($_POST['hair_color']) && $_POST['hair_color'] == 'Gray') ? 'selected' : ''; ?>>Gray</option>
+                                    <option value="White" <?php echo (isset($_POST['hair_color']) && $_POST['hair_color'] == 'White') ? 'selected' : ''; ?>>White</option>
+                                    <option value="Bald" <?php echo (isset($_POST['hair_color']) && $_POST['hair_color'] == 'Bald') ? 'selected' : ''; ?>>Bald</option>
+                                </select>
                             </div>
                             
                             <div class="form-field">
@@ -932,41 +965,69 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) 
                             
                             <div class="form-field">
                                 <label>Complexion</label>
-                                <input type="text" class="form-control" name="complexion" 
-                                       placeholder="Enter complexion"
-                                       value="<?php echo isset($_POST['complexion']) ? htmlspecialchars($_POST['complexion']) : ''; ?>">
+                                <select class="form-select" name="complexion">
+                                    <option value="">Select Complexion</option>
+                                    <option value="Fair" <?php echo (isset($_POST['complexion']) && $_POST['complexion'] == 'Fair') ? 'selected' : ''; ?>>Fair</option>
+                                    <option value="Light Brown" <?php echo (isset($_POST['complexion']) && $_POST['complexion'] == 'Light Brown') ? 'selected' : ''; ?>>Light Brown</option>
+                                    <option value="Brown" <?php echo (isset($_POST['complexion']) && $_POST['complexion'] == 'Brown') ? 'selected' : ''; ?>>Brown</option>
+                                    <option value="Dark Brown" <?php echo (isset($_POST['complexion']) && $_POST['complexion'] == 'Dark Brown') ? 'selected' : ''; ?>>Dark Brown</option>
+                                    <option value="Dark" <?php echo (isset($_POST['complexion']) && $_POST['complexion'] == 'Dark') ? 'selected' : ''; ?>>Dark</option>
+                                </select>
                             </div>
                             
                             <div class="form-field full-width">
                                 <label>Distinguishing Marks/Tattoo</label>
-                                <textarea class="form-control" name="distinguishing_marks" rows="2"><?php echo isset($_POST['distinguishing_marks']) ? htmlspecialchars($_POST['distinguishing_marks']) : ''; ?></textarea>
+                                <textarea class="form-control" name="distinguishing_marks" rows="2" 
+                                          placeholder="Describe any tattoos, scars, or distinguishing marks"><?php echo isset($_POST['distinguishing_marks']) ? htmlspecialchars($_POST['distinguishing_marks']) : ''; ?></textarea>
                             </div>
-                              <div class="form-field full-width">
+                            
+                            <!-- ARREST FIELDS -->
+                            <div class="form-field full-width">
                                 <label>Previous Arrest Record<span style="color: #ef4444;">*</span></label>
-                                <input type="text" class="form-control" name="previous_arrest_record" required 
-                                       placeholder="Enter previous arrest record" value="<?php echo isset($_POST['previous_arrest_record']) ? htmlspecialchars($_POST['previous_arrest_record']) : ''; ?>">
+                                <select class="form-select" name="previous_arrest_record" required>
+                                    <option value="">Select</option>
+                                    <option value="No Previous Record" <?php echo (isset($_POST['previous_arrest_record']) && $_POST['previous_arrest_record'] == 'No Previous Record') ? 'selected' : ''; ?>>No Previous Record</option>
+                                    <option value="With Previous Record" <?php echo (isset($_POST['previous_arrest_record']) && $_POST['previous_arrest_record'] == 'With Previous Record') ? 'selected' : ''; ?>>With Previous Record</option>
+                                </select>
                             </div>
-                              <div class="form-field full-width">
+                            
+                            <div class="form-field full-width">
                                 <label>Specific Charge<span style="color: #ef4444;">*</span></label>
-                                <input type="text" class="form-control" name="specific_charge" required 
-                                       placeholder="Enter specific charge" value="<?php echo isset($_POST['specific_charge']) ? htmlspecialchars($_POST['specific_charge']) : ''; ?>">
+                                <select class="form-select" name="specific_charge" required>
+                                    <option value="">Select Charge</option>
+                                    <option value="Violation of RA 9165 (Comprehensive Dangerous Drugs Act)" <?php echo (isset($_POST['specific_charge']) && $_POST['specific_charge'] == 'Violation of RA 9165 (Comprehensive Dangerous Drugs Act)') ? 'selected' : ''; ?>>Violation of RA 9165 (Comprehensive Dangerous Drugs Act)</option>
+                                    <option value="Illegal Possession of Firearms" <?php echo (isset($_POST['specific_charge']) && $_POST['specific_charge'] == 'Illegal Possession of Firearms') ? 'selected' : ''; ?>>Illegal Possession of Firearms</option>
+                                    <option value="Theft/Robbery" <?php echo (isset($_POST['specific_charge']) && $_POST['specific_charge'] == 'Theft/Robbery') ? 'selected' : ''; ?>>Theft/Robbery</option>
+                                    <option value="Physical Injury" <?php echo (isset($_POST['specific_charge']) && $_POST['specific_charge'] == 'Physical Injury') ? 'selected' : ''; ?>>Physical Injury</option>
+                                    <option value="Homicide/Murder" <?php echo (isset($_POST['specific_charge']) && $_POST['specific_charge'] == 'Homicide/Murder') ? 'selected' : ''; ?>>Homicide/Murder</option>
+                                    <option value="Other" <?php echo (isset($_POST['specific_charge']) && $_POST['specific_charge'] == 'Other') ? 'selected' : ''; ?>>Other</option>
+                                </select>
                             </div>
-                              <div class="form-field full-width">
+                            
+                            <div class="form-field full-width">
                                 <label>Date/Time/Place of Arrest<span style="color: #ef4444;">*</span></label>
-                                <input type="text" class="form-control" name="date_time_place_of_arrest" required 
-                                       placeholder="Enter date, time, and place of arrest" value="<?php echo isset($_POST['date_time_place_of_arrest']) ? htmlspecialchars($_POST['date_time_place_of_arrest']) : ''; ?>">
+                                <input type="datetime-local" class="form-control" name="date_time_place_of_arrest" required 
+                                       value="<?php echo isset($_POST['date_time_place_of_arrest']) ? htmlspecialchars($_POST['date_time_place_of_arrest']) : ''; ?>">
+                                <small class="text-muted">Format: YYYY-MM-DD HH:MM (e.g., 2024-03-24 14:30)</small>
                             </div>
-                              <div class="form-field full-width">
+                            
+                            <div class="form-field full-width">
                                 <label>Name of Arresting Officer<span style="color: #ef4444;">*</span></label>
                                 <input type="text" class="form-control" name="arresting_officer_name" required 
                                        placeholder="Enter arresting officer's name" value="<?php echo isset($_POST['arresting_officer_name']) ? htmlspecialchars($_POST['arresting_officer_name']) : ''; ?>">
                             </div>
-                              <div class="form-field full-width">
-                                <label>Unit/Office of Arresting Officer<span style="color: #ef4444;">*</span></label>
-                                <input type="text" class="form-control" name="arresting_officer_unit" required 
-                                       placeholder="Enter unit or office of arresting officer" value="<?php echo isset($_POST['arresting_officer_unit']) ? htmlspecialchars($_POST['arresting_officer_unit']) : ''; ?>">
-                            </div>
                             
+                            <div class="form-field full-width">
+                                <label>Unit/Office of Arresting Officer<span style="color: #ef4444;">*</span></label>
+                                <select class="form-select" name="arresting_officer_unit" required>
+                                    <option value="">Select Unit/Office</option>
+                                    <option value="Manolo Fortich MPS" <?php echo (isset($_POST['arresting_officer_unit']) && $_POST['arresting_officer_unit'] == 'Manolo Fortich MPS') ? 'selected' : ''; ?>>Manolo Fortich MPS</option>
+                                    <option value="Bukidnon PPO" <?php echo (isset($_POST['arresting_officer_unit']) && $_POST['arresting_officer_unit'] == 'Bukidnon PPO') ? 'selected' : ''; ?>>Bukidnon PPO</option>
+                                    <option value="PDEA" <?php echo (isset($_POST['arresting_officer_unit']) && $_POST['arresting_officer_unit'] == 'PDEA') ? 'selected' : ''; ?>>PDEA</option>
+                                    <option value="NBI" <?php echo (isset($_POST['arresting_officer_unit']) && $_POST['arresting_officer_unit'] == 'NBI') ? 'selected' : ''; ?>>NBI</option>
+                                    <option value="Other" <?php echo (isset($_POST['arresting_officer_unit']) && $_POST['arresting_officer_unit'] == 'Other') ? 'selected' : ''; ?>>Other</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -978,61 +1039,58 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) 
                     </div>
                     <div class="section-content">
                         <table class="form-table">
-                            <tr>
+                             <thead>
                                 <th style="width: 100px;"></th>
                                 <th>Father</th>
                                 <th>Mother</th>
-                            </tr>
-                            <tr>
-                                <td><strong>Name</strong></td>
-                                <td><input type="text" class="form-control" name="father_name" value="<?php echo isset($_POST['father_name']) ? htmlspecialchars($_POST['father_name']) : ''; ?>"></td>
-                                <td><input type="text" class="form-control" name="mother_name" value="<?php echo isset($_POST['mother_name']) ? htmlspecialchars($_POST['mother_name']) : ''; ?>"></td>
-                            </tr>
-                             <tr>
-                                <td><strong>Known Address</strong></td>
-                                <td><input type="text" class="form-control" name="father_address" value="<?php echo isset($_POST['father_address']) ? htmlspecialchars($_POST['father_address']) : ''; ?>"></td>
-                                <td><input type="text" class="form-control" name="mother_address" value="<?php echo isset($_POST['mother_address']) ? htmlspecialchars($_POST['mother_address']) : ''; ?>"></td>
-                            </tr>
-                            <tr>
-                                <td><strong>Date of Birth</strong></td>
-                                <td><input type="date" class="form-control" name="father_dob" value="<?php echo isset($_POST['father_dob']) ? htmlspecialchars($_POST['father_dob']) : ''; ?>"></td>
-                                <td><input type="date" class="form-control" name="mother_dob" value="<?php echo isset($_POST['mother_dob']) ? htmlspecialchars($_POST['mother_dob']) : ''; ?>"></td>
-                            </tr>
-                            <tr>
-                                <td><strong>Place Of Birth</strong></td>
-                                <td><input type="text" class="form-control" name="father_place_of_birth" value="<?php echo isset($_POST['father_place_of_birth']) ? htmlspecialchars($_POST['father_place_of_birth']) : ''; ?>"></td>
-                                <td><input type="text" class="form-control" name="mother_place_of_birth" value="<?php echo isset($_POST['mother_place_of_birth']) ? htmlspecialchars($_POST['mother_place_of_birth']) : ''; ?>"></td>
-                            </tr> 
-                            <tr>
-                                <td><strong>Age</strong></td>
-                                <td><input type="text" class="form-control" name="father_age" value="<?php echo isset($_POST['father_age']) ? htmlspecialchars($_POST['father_age']) : ''; ?>"></td>
-                                <td><input type="text" class="form-control" name="mother_age" value="<?php echo isset($_POST['mother_age']) ? htmlspecialchars($_POST['mother_age']) : ''; ?>"></td>
-                            </tr>
-                            <tr>
-                                <td><strong>Occupation</strong></td>
-                                <td><input type="text" class="form-control" name="father_occupation" value="<?php echo isset($_POST['father_occupation']) ? htmlspecialchars($_POST['father_occupation']) : ''; ?>"></td>
-                                <td><input type="text" class="form-control" name="mother_occupation" value="<?php echo isset($_POST['mother_occupation']) ? htmlspecialchars($_POST['mother_occupation']) : ''; ?>"></td>
-                            </tr>
-                        </table>
+                             </thead>
+                             <tbody>
+                                  <tr>
+                                    <td><strong>Name</strong></td>
+                                     <td><input type="text" class="form-control" name="father_name" placeholder="Father's full name" value="<?php echo isset($_POST['father_name']) ? htmlspecialchars($_POST['father_name']) : ''; ?>"></td>
+                                     <td><input type="text" class="form-control" name="mother_name" placeholder="Mother's full name" value="<?php echo isset($_POST['mother_name']) ? htmlspecialchars($_POST['mother_name']) : ''; ?>"></td>
+                                  </tr>
+                                  <tr>
+                                     <td><strong>Known Address</strong></td>
+                                     <td><input type="text" class="form-control" name="father_address" placeholder="Father's address" value="<?php echo isset($_POST['father_address']) ? htmlspecialchars($_POST['father_address']) : ''; ?>"></td>
+                                     <td><input type="text" class="form-control" name="mother_address" placeholder="Mother's address" value="<?php echo isset($_POST['mother_address']) ? htmlspecialchars($_POST['mother_address']) : ''; ?>"></td>
+                                  </tr>
+                                  <tr>
+                                     <td><strong>Date of Birth</strong></td>
+                                     <td><input type="date" class="form-control" name="father_dob" value="<?php echo isset($_POST['father_dob']) ? htmlspecialchars($_POST['father_dob']) : ''; ?>"></td>
+                                     <td><input type="date" class="form-control" name="mother_dob" value="<?php echo isset($_POST['mother_dob']) ? htmlspecialchars($_POST['mother_dob']) : ''; ?>"></td>
+                                  </tr>
+                                  <tr>
+                                     <td><strong>Age</strong></td>
+                                     <td><input type="number" class="form-control" name="father_age" placeholder="Age" value="<?php echo isset($_POST['father_age']) ? htmlspecialchars($_POST['father_age']) : ''; ?>"></td>
+                                     <td><input type="number" class="form-control" name="mother_age" placeholder="Age" value="<?php echo isset($_POST['mother_age']) ? htmlspecialchars($_POST['mother_age']) : ''; ?>"></td>
+                                  </tr>
+                                  <tr>
+                                     <td><strong>Occupation</strong></td>
+                                     <td><input type="text" class="form-control" name="father_occupation" placeholder="Occupation" value="<?php echo isset($_POST['father_occupation']) ? htmlspecialchars($_POST['father_occupation']) : ''; ?>"></td>
+                                     <td><input type="text" class="form-control" name="mother_occupation" placeholder="Occupation" value="<?php echo isset($_POST['mother_occupation']) ? htmlspecialchars($_POST['mother_occupation']) : ''; ?>"></td>
+                                  </tr>
+                             </tbody>
+                          </table>
                         
                         <div style="margin-top: 20px;">
                             <table class="form-table">
-                                <tr>
+                                 <thead>
                                     <th colspan="4">Spouse</th>
-                                </tr>
-                                <tr>
+                                 </thead>
+                                 <tr>
                                     <th>Name</th>
                                     <th>Age</th>
                                     <th>Occupation</th>
                                     <th>Address</th>
-                                </tr>
-                                <tr>
-                                    <td><input type="text" class="form-control" name="spouse_name" value="<?php echo isset($_POST['spouse_name']) ? htmlspecialchars($_POST['spouse_name']) : ''; ?>"></td>
-                                    <td><input type="number" class="form-control" name="spouse_age" value="<?php echo isset($_POST['spouse_age']) ? htmlspecialchars($_POST['spouse_age']) : ''; ?>"></td>
-                                    <td><input type="text" class="form-control" name="spouse_occupation" value="<?php echo isset($_POST['spouse_occupation']) ? htmlspecialchars($_POST['spouse_occupation']) : ''; ?>"></td>
-                                    <td><input type="text" class="form-control" name="spouse_address" value="<?php echo isset($_POST['spouse_address']) ? htmlspecialchars($_POST['spouse_address']) : ''; ?>"></td>
-                                </tr>
-                            </table>
+                                 </tr>
+                                 <tr>
+                                    <td><input type="text" class="form-control" name="spouse_name" placeholder="Spouse's name" value="<?php echo isset($_POST['spouse_name']) ? htmlspecialchars($_POST['spouse_name']) : ''; ?>"></td>
+                                    <td><input type="number" class="form-control" name="spouse_age" placeholder="Age" value="<?php echo isset($_POST['spouse_age']) ? htmlspecialchars($_POST['spouse_age']) : ''; ?>"></td>
+                                    <td><input type="text" class="form-control" name="spouse_occupation" placeholder="Occupation" value="<?php echo isset($_POST['spouse_occupation']) ? htmlspecialchars($_POST['spouse_occupation']) : ''; ?>"></td>
+                                    <td><input type="text" class="form-control" name="spouse_address" placeholder="Address" value="<?php echo isset($_POST['spouse_address']) ? htmlspecialchars($_POST['spouse_address']) : ''; ?>"></td>
+                                 </tr>
+                              </table>
                         </div>
                         
                         <div style="margin-top: 20px;">
@@ -1040,24 +1098,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) 
                             <div id="siblingsContainer">
                                 <table class="form-table" id="siblingsTable">
                                     <thead>
-                                        <tr>
+                                         <tr>
                                             <th>Name</th>
                                             <th>Age</th>
                                             <th>Occupation</th>
                                             <th>Status</th>
                                             <th>Address</th>
-                                        </tr>
+                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <tr>
-                                            <td><input type="text" class="form-control" name="sibling_name[]"></td>
-                                            <td><input type="number" class="form-control" name="sibling_age[]"></td>
-                                            <td><input type="text" class="form-control" name="sibling_occupation[]"></td>
-                                            <td><input type="text" class="form-control" name="sibling_status[]"></td>
-                                            <td><input type="text" class="form-control" name="sibling_address[]"></td>
-                                        </tr>
+                                         <tr>
+                                            <td><input type="text" class="form-control" name="sibling_name[]" placeholder="Sibling name"></td>
+                                            <td><input type="number" class="form-control" name="sibling_age[]" placeholder="Age"></td>
+                                            <td><input type="text" class="form-control" name="sibling_occupation[]" placeholder="Occupation"></td>
+                                            <td><input type="text" class="form-control" name="sibling_status[]" placeholder="Status (e.g., Single, Married)"></td>
+                                            <td><input type="text" class="form-control" name="sibling_address[]" placeholder="Address"></td>
+                                         </tr>
                                     </tbody>
-                                </table>
+                                 </table>
                                 <button type="button" class="btn btn-secondary btn-sm" style="margin-top: 10px;" onclick="addSiblingRow()">
                                     <i class="fas fa-plus"></i> Add Sibling
                                 </button>
@@ -1066,7 +1124,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) 
                     </div>
                 </div>
 
-                <!-- III. SOURCE INFORMATION -->
+                <!-- III. TACTICAL INFORMATION -->
                 <div class="form-section">
                     <div class="section-title">
                         <i class="fas fa-user-secret"></i> III. TACTICAL INFORMATION
@@ -1075,67 +1133,41 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) 
                         <div class="form-grid">
                             <div class="form-field">
                                 <label>Drugs Involved</label>
-                                <input type="text" class="form-control" name="drugs_involved" 
-                                       value="<?php echo isset($_POST['drugs_involved']) ? htmlspecialchars($_POST['drugs_involved']) : ''; ?>">
+                                <select class="form-select" name="drugs_involved">
+                                    <option value="">Select Drug Type</option>
+                                    <option value="Shabu" <?php echo (isset($_POST['drugs_involved']) && $_POST['drugs_involved'] == 'Shabu') ? 'selected' : ''; ?>>Shabu (Methamphetamine)</option>
+                                    <option value="Marijuana" <?php echo (isset($_POST['drugs_involved']) && $_POST['drugs_involved'] == 'Marijuana') ? 'selected' : ''; ?>>Marijuana (Cannabis)</option>
+                                    <option value="Ecstasy" <?php echo (isset($_POST['drugs_involved']) && $_POST['drugs_involved'] == 'Ecstasy') ? 'selected' : ''; ?>>Ecstasy (MDMA)</option>
+                                    <option value="Cocaine" <?php echo (isset($_POST['drugs_involved']) && $_POST['drugs_involved'] == 'Cocaine') ? 'selected' : ''; ?>>Cocaine</option>
+                                    <option value="Other" <?php echo (isset($_POST['drugs_involved']) && $_POST['drugs_involved'] == 'Other') ? 'selected' : ''; ?>>Other</option>
+                                </select>
                             </div>
                             
                             <div class="form-field">
                                 <label>Vehicles Used</label>
                                 <input type="text" class="form-control" name="vehicles_used" 
+                                       placeholder="Type and plate number"
                                        value="<?php echo isset($_POST['vehicles_used']) ? htmlspecialchars($_POST['vehicles_used']) : ''; ?>">
                             </div>
                             
                             <div class="form-field">
                                 <label>Armaments</label>
                                 <input type="text" class="form-control" name="armaments" 
+                                       placeholder="Type of weapons/firearms"
                                        value="<?php echo isset($_POST['armaments']) ? htmlspecialchars($_POST['armaments']) : ''; ?>">
                             </div>
                             
                             <div class="form-field">
                                 <label>Companion/s During Arrest</label>
                                 <input type="text" class="form-control" name="companions_arrest" 
+                                       placeholder="Names of companions"
                                        value="<?php echo isset($_POST['companions_arrest']) ? htmlspecialchars($_POST['companions_arrest']) : ''; ?>">
-                            </div>
-                            
-                            <div class="form-field full-width">
-                                <label>Relationship/Address</label>
-                                <textarea class="form-control" name="relationship_address" rows="2"><?php echo isset($_POST['relationship_address']) ? htmlspecialchars($_POST['relationship_address']) : ''; ?></textarea>
-                            </div>
-                            
-                            <div class="form-field">
-                                <label>Name/Source of drugs Involved </label>
-                                <input type="text" class="form-control" name="name_source_drugs" 
-                                       value="<?php echo isset($_POST['name_source_drugs']) ? htmlspecialchars($_POST['name_source_drugs']) : ''; ?>">
-                            </div>
-                            
-                            <div class="form-field">
-                                <label>Address of alleged Source</label>
-                                <input type="text" class="form-control" name="Address_alleged_source" 
-                                       value="<?php echo isset($_POST['Address_alleged_source']) ? htmlspecialchars($_POST['Address_alleged_source']) : ''; ?>">
-                            </div>
-                            
-                            <div class="form-field">
-                                <label>Other Type Of Drugs Supplied by Source</label>
-                                <input type="text" class="form-control" name="other_drugs_supplied" 
-                                       value="<?php echo isset($_POST['other_drugs_supplied']) ? htmlspecialchars($_POST['other_drugs_supplied']) : ''; ?>">
-                            </div>
-                            
-                            <div class="form-field full-width">
-                                <label>Subgroups And Specific AOR</label>
-                                <textarea class="form-control" name="subgroups_specific_aor" rows="2"><?php echo isset($_POST['subgroups_specific_aor']) ? htmlspecialchars($_POST['subgroups_specific_aor']) : ''; ?></textarea>
-                            </div>
-                            <div class="form-field full-width">
-                                <label>Other Subject Known as Source</label>
-                                <textarea class="form-control" name="other_subject_known_as_source" rows="2"><?php echo isset($_POST['other_subject_known_as_source']) ? htmlspecialchars($_POST['other_subject_known_as_source']) : ''; ?></textarea>
-                            </div>
-                            <div class="form-field full-width">
-                                <label>Types of Drugs Pushed by Subject</label>
-                                <textarea class="form-control" name="types_of_drugs_pushed" rows="2"><?php echo isset($_POST['types_of_drugs_pushed']) ? htmlspecialchars($_POST['types_of_drugs_pushed']) : ''; ?></textarea>
                             </div>
                         </div>
                     </div>
                 </div>
-                <!-- VI. RECRUITMENT SUMMARY -->
+                
+                <!-- IV. RECRUITMENT SUMMARY -->
                 <div class="form-section">
                     <div class="section-title">
                         <i class="fas fa-user-plus"></i> IV. RECRUITMENT SUMMARY
@@ -1148,7 +1180,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) 
                     </div>
                 </div>
 
-                <!-- VII. MODUS OPERANDI -->
+                <!-- V. MODUS OPERANDI -->
                 <div class="form-section">
                     <div class="section-title">
                         <i class="fas fa-exchange-alt"></i> V. MODUS OPERANDI
@@ -1161,7 +1193,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) 
                     </div>
                 </div>
 
-                <!-- X. CI MATTERS -->
+                <!-- VI. CI MATTERS -->
                 <div class="form-section">
                     <div class="section-title">
                         <i class="fas fa-user-secret"></i> VI. CI MATTERS
@@ -1176,18 +1208,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) 
                             
                             <div class="form-field full-width">
                                 <label>Other Revelations</label>
-                                <textarea class="form-control" name="other_revelations" rows="2"><?php echo isset($_POST['other_revelations']) ? htmlspecialchars($_POST['other_revelations']) : ''; ?></textarea>
+                                <textarea class="form-control" name="other_revelations" rows="2" 
+                                          placeholder="Other information revealed"><?php echo isset($_POST['other_revelations']) ? htmlspecialchars($_POST['other_revelations']) : ''; ?></textarea>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- XI. RECOMMENDATION & STATUS -->
-  <div class="form-section">
+                <!-- VII. RECOMMENDATION -->
+                <div class="form-section">
                     <div class="section-title">
                         <i class="fas fa-exchange-alt"></i> VII. RECOMMENDATION
                     </div>
-                    <div class="section-content">RECOMMENDATION
+                    <div class="section-content">
                         <div class="form-field full-width">
                             <textarea class="form-control" name="recommendation" rows="3" 
                                       placeholder="Describe the recommendation..."><?php echo isset($_POST['recommendation']) ? htmlspecialchars($_POST['recommendation']) : ''; ?></textarea>
@@ -1241,27 +1274,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) 
             const newRow = table.insertRow();
             
             const cells = [];
-            for (let i = 0; i < 6; i++) {
+            for (let i = 0; i < 5; i++) {
                 cells.push(newRow.insertCell(i));
             }
             
-            cells[0].innerHTML = '<input type="text" class="form-control" name="sibling_name[]">';
-            cells[1].innerHTML = '<input type="number" class="form-control" name="sibling_age[]">';
-            cells[2].innerHTML = '<input type="text" class="form-control" name="sibling_occupation[]">';
-            cells[3].innerHTML = '<input type="text" class="form-control" name="sibling_status[]">';
-            cells[4].innerHTML = '<input type="text" class="form-control" name="sibling_address[]">';
-            cells[5].innerHTML = '<button type="button" class="btn btn-secondary btn-sm" onclick="removeRow(this)"><i class="fas fa-trash"></i></button>';
-        }
-        
-        function removeRow(button) {
-            const row = button.closest('tr');
-            const tableBody = row.parentNode;
-            
-            if (tableBody.rows.length > 1) {
-                row.remove();
-            } else {
-                alert('At least one sibling row must remain.');
-            }
+            cells[0].innerHTML = '<input type="text" class="form-control" name="sibling_name[]" placeholder="Sibling name">';
+            cells[1].innerHTML = '<input type="number" class="form-control" name="sibling_age[]" placeholder="Age">';
+            cells[2].innerHTML = '<input type="text" class="form-control" name="sibling_occupation[]" placeholder="Occupation">';
+            cells[3].innerHTML = '<input type="text" class="form-control" name="sibling_status[]" placeholder="Status">';
+            cells[4].innerHTML = '<input type="text" class="form-control" name="sibling_address[]" placeholder="Address">';
         }
         
         // Auto-calculate age from date of birth
