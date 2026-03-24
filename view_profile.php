@@ -96,10 +96,13 @@ if (!empty($profile['date_time_place_of_arrest'])) {
             $parts = explode(' ', $arrest_value, 2);
             if (count($parts) == 2 && strtotime($parts[0]) !== false) {
                 $arrest_place = $parts[1];
+            } else {
+                $arrest_place = $arrest_value;
             }
         }
     } else {
         $arrest_datetime_formatted = $arrest_value;
+        $arrest_place = $arrest_value;
     }
 }
 
@@ -654,146 +657,146 @@ $currentDate = date('F d, Y');
                 </div>
                 <div class="section-content">
                     <table class="personal-data-table">
-                          <tr>
+                         <thead>
                             <th>FULL NAME</th>
                             <td colspan="3"><?php echo displayValue($profile['full_name']); ?></td>
-                          </tr>
-                          <tr>
-                            <th>ALIAS</th>
-                            <td colspan="3"><?php echo displayValue($profile['alias']); ?></td>
-                          </tr>
-                          <tr>
-                            <th>Name of Group/Gang Affiliation (if any)</th>
-                            <td colspan="3"><?php echo displayValue($profile['group_affiliation']); ?></td>
-                          </tr>
-                          <tr>
-                            <th>Position/Role (if any)</th>
-                            <td colspan="3"><?php echo displayValue($profile['position_roles']); ?></td>
-                          </tr>
-                          <tr>
-                            <th>AGE</th>
-                            <td colspan="3"><?php echo displayValue($profile['age']); ?></td>
-                          </tr>
-                          <tr>
-                            <th>SEX</th>
-                            <td colspan="3"><?php echo displayValue($profile['sex']); ?></td>
-                          </tr>
-                          <tr>
-                            <th>DATE OF BIRTH</th>
-                            <td colspan="3"><?php echo !empty($profile['dob']) ? date('M d, Y', strtotime($profile['dob'])) : '—'; ?></td>
-                          </tr>
-                          <tr>
-                            <th>PLACE OF BIRTH</th>
-                            <td colspan="3"><?php echo displayValue($profile['pob']); ?></td>
-                          </tr>
-                          <tr>
-                            <th>EDUCATIONAL ATTAINMENT</th>
-                            <td colspan="3"><?php echo displayValue($profile['educational_attainment']); ?></td>
-                          </tr>
-                          <tr>
-                            <th>OCCUPATION/PROFESSION</th>
-                            <td colspan="3"><?php echo displayValue($profile['occupation']); ?></td>
-                          </tr>
-                          <tr>
-                            <th>COMPANY/OFFICE</th>
-                            <td colspan="3"><?php echo displayValue($profile['company_office']); ?></td>
-                          </tr>
-                          <tr>
-                            <th>TECHNICAL SKILLS</th>
-                            <td colspan="3"><?php echo displayValue($profile['technical_skills']); ?></td>
-                          </tr>
-                          <tr>
-                            <th>ETHNIC GROUP</th>
-                            <td colspan="3"><?php echo displayValue($profile['ethnic_group']); ?></td>
-                          </tr>
-                          <tr>
-                            <th>LANGUAGE/DIALECT</th>
-                            <td colspan="3"><?php echo displayValue($profile['languages']); ?></td>
-                          </tr>
-                          <tr>
-                            <th>PRESENT ADDRESS</th>
-                            <td colspan="3"><?php echo displayValue($profile['present_address']); ?></td>
-                          </tr>
-                          <tr>
-                            <th>PROVINCIAL ADDRESS</th>
-                            <td colspan="3"><?php echo displayValue($profile['provincial_address']); ?></td>
-                          </tr>
-                          <tr>
-                            <th>CIVIL STATUS</th>
-                            <td colspan="3"><?php echo displayValue($profile['civil_status']); ?></td>
-                          </tr>
-                          <tr>
-                            <th>CITIZENSHIP</th>
-                            <td colspan="3"><?php echo displayValue($profile['citizenship']); ?></td>
-                          </tr>
-                          <tr>
-                            <th>RELIGION</th>
-                            <td colspan="3"><?php echo displayValue($profile['religion']); ?></td>
-                          </tr>
-                          <tr>
-                            <th>HEIGHT</th>
-                            <td><?php echo displayValue($profile['height_ft']); ?></td>
-                            <th>WEIGHT</th>
-                            <td><?php echo displayValue($profile['weight_kg']); ?> kg</td>
-                          </tr>
-                          <tr>
-                            <th>EYES</th>
-                            <td><?php echo displayValue($profile['eyes_color']); ?></td>
-                            <th>HAIR</th>
-                            <td><?php echo displayValue($profile['hair_color']); ?></td>
-                          </tr>
-                          <tr>
-                            <th>BUILT</th>
-                            <td><?php echo displayValue($profile['built']); ?></td>
-                            <th>COMPLEXION</th>
-                            <td><?php echo displayValue($profile['complexion']); ?></td>
-                          </tr>
-                          <tr>
-                            <th>DISTINGUISHING MARKS/TATTOO</th>
-                            <td colspan="3"><?php echo displayValue($profile['distinguishing_marks']); ?></td>
-                          </tr>
-                          <tr>
-                            <th>PREVIOUS ARREST</th>
-                            <td colspan="3"><?php echo displayValue($profile['previous_arrest']); ?></td>
-                          </tr>
-                          <tr>
-                            <th>SPECIFIC CHARGE</th>
-                            <td colspan="3"><?php echo displayValue($profile['specific_charge']); ?></td>
-                          </tr>
-                          <tr>
-                            <th>DATE/TIME OF ARREST</th>
-                            <td colspan="3">
-                                <?php if (!empty($arrest_datetime_formatted)): ?>
-                                    <a href="dashboard.php?year=<?php echo $arrest_year; ?>&month=<?php echo $arrest_month; ?>" class="arrest-date-link" target="_blank">
-                                        <i class="fas fa-calendar-check"></i> <?php echo $arrest_datetime_formatted; ?>
-                                    </a>
-                                <?php else: ?>
-                                    —
-                                <?php endif; ?>
-                            </td>
-                          </tr>
-                          <tr>
-                            <th>PLACE OF ARREST</th>
-                            <td colspan="3">
-                                <?php 
-                                if (!empty($arrest_place)) {
-                                    echo displayValue($arrest_place);
-                                } elseif (!empty($profile['date_time_place_of_arrest'])) {
-                                    echo displayValue($profile['date_time_place_of_arrest']);
-                                } else {
-                                    echo '—';
-                                }
-                                ?>
-                            </td>
-                          </tr>
-                          <tr>
-                            <th>NAME OF ARRESTING OFFICER</th>
-                            <td colspan="3"><?php echo displayValue($profile['arresting_officer']); ?></td>
-                          </tr>
-                          <tr>
-                            <th>UNIT/OFFICE OF ARRESTING OFFICER</th>
-                            <td colspan="3"><?php echo displayValue($profile['arresting_unit']); ?></td>
-                          </tr>
+                         </thead>
+                         <tbody>
+                            <tr>
+                                <th>ALIAS</th>
+                                <td colspan="3"><?php echo displayValue($profile['alias']); ?></td>
+                            </tr>
+                            <tr>
+                                <th>Name of Group/Gang Affiliation (if any)</th>
+                                <td colspan="3"><?php echo displayValue($profile['group_affiliation']); ?></td>
+                            </tr>
+                            <tr>
+                                <th>Position/Role (if any)</th>
+                                <td colspan="3"><?php echo displayValue($profile['position_roles']); ?></td>
+                            </tr>
+                            <tr>
+                                <th>AGE</th>
+                                <td colspan="3"><?php echo displayValue($profile['age']); ?></td>
+                            </tr>
+                            <tr>
+                                <th>SEX</th>
+                                <td colspan="3"><?php echo displayValue($profile['sex']); ?></td>
+                            </tr>
+                            <tr>
+                                <th>DATE OF BIRTH</th>
+                                <td colspan="3"><?php echo !empty($profile['dob']) ? date('M d, Y', strtotime($profile['dob'])) : '—'; ?></td>
+                            </tr>
+                            <tr>
+                                <th>PLACE OF BIRTH</th>
+                                <td colspan="3"><?php echo displayValue($profile['pob']); ?></td>
+                            </tr>
+                            <tr>
+                                <th>EDUCATIONAL ATTAINMENT</th>
+                                <td colspan="3"><?php echo displayValue($profile['educational_attainment']); ?></td>
+                            </tr>
+                            <tr>
+                                <th>OCCUPATION/PROFESSION</th>
+                                <td colspan="3"><?php echo displayValue($profile['occupation']); ?></td>
+                            </tr>
+                            <tr>
+                                <th>COMPANY/OFFICE</th>
+                                <td colspan="3"><?php echo displayValue($profile['company_office']); ?></td>
+                            </tr>
+                            <tr>
+                                <th>TECHNICAL SKILLS</th>
+                                <td colspan="3"><?php echo displayValue($profile['technical_skills']); ?></td>
+                            </tr>
+                            <tr>
+                                <th>ETHNIC GROUP</th>
+                                <td colspan="3"><?php echo displayValue($profile['ethnic_group']); ?></td>
+                            </tr>
+                            <tr>
+                                <th>LANGUAGE/DIALECT</th>
+                                <td colspan="3"><?php echo displayValue($profile['languages']); ?></td>
+                            </tr>
+                            <tr>
+                                <th>PRESENT ADDRESS</th>
+                                <td colspan="3"><?php echo displayValue($profile['present_address']); ?></td>
+                            </tr>
+                            <tr>
+                                <th>PROVINCIAL ADDRESS</th>
+                                <td colspan="3"><?php echo displayValue($profile['provincial_address']); ?></td>
+                            </tr>
+                            <tr>
+                                <th>CIVIL STATUS</th>
+                                <td colspan="3"><?php echo displayValue($profile['civil_status']); ?></td>
+                            </tr>
+                            <tr>
+                                <th>CITIZENSHIP</th>
+                                <td colspan="3"><?php echo displayValue($profile['citizenship']); ?></td>
+                            </tr>
+                            <tr>
+                                <th>RELIGION</th>
+                                <td colspan="3"><?php echo displayValue($profile['religion']); ?></td>
+                            </tr>
+                            <tr>
+                                <th>HEIGHT</th>
+                                <td><?php echo displayValue($profile['height_ft']); ?></td>
+                                <th>WEIGHT</th>
+                                <td><?php echo displayValue($profile['weight_kg']); ?> kg</td>
+                            </tr>
+                            <tr>
+                                <th>EYES</th>
+                                <td><?php echo displayValue($profile['eyes_color']); ?></td>
+                                <th>HAIR</th>
+                                <td><?php echo displayValue($profile['hair_color']); ?></td>
+                            </tr>
+                            <tr>
+                                <th>BUILT</th>
+                                <td><?php echo displayValue($profile['built']); ?></td>
+                                <th>COMPLEXION</th>
+                                <td><?php echo displayValue($profile['complexion']); ?></td>
+                            </tr>
+                            <tr>
+                                <th>DISTINGUISHING MARKS/TATTOO</th>
+                                <td colspan="3"><?php echo displayValue($profile['distinguishing_marks']); ?></td>
+                            </tr>
+                            <tr>
+                                <th>PREVIOUS ARREST</th>
+                                <td colspan="3"><?php echo displayValue($profile['previous_arrest']); ?></td>
+                            </tr>
+                            <tr>
+                                <th>SPECIFIC CHARGE</th>
+                                <td colspan="3"><?php echo displayValue($profile['specific_charge']); ?></td>
+                            </tr>
+                            <tr>
+                                <th>DATE/TIME OF ARREST</th>
+                                <td colspan="3">
+                                    <?php if (!empty($arrest_datetime_formatted)): ?>
+                                        <a href="dashboard.php?year=<?php echo $arrest_year; ?>&month=<?php echo $arrest_month; ?>" class="arrest-date-link" target="_blank">
+                                            <i class="fas fa-calendar-check"></i> <?php echo $arrest_datetime_formatted; ?>
+                                        </a>
+                                    <?php else: ?>
+                                        —
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>PLACE OF ARREST</th>
+                                <td colspan="3">
+                                    <?php 
+                                    if (!empty($arrest_place)) {
+                                        echo displayValue($arrest_place);
+                                    } else {
+                                        echo '—';
+                                    }
+                                    ?>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>NAME OF ARRESTING OFFICER</th>
+                                <td colspan="3"><?php echo displayValue($profile['arresting_officer']); ?></td>
+                            </tr>
+                            <tr>
+                                <th>UNIT/OFFICE OF ARRESTING OFFICER</th>
+                                <td colspan="3"><?php echo displayValue($profile['arresting_unit']); ?></td>
+                            </tr>
+                         </tbody>
                     </table>
                 </div>
             </div>
@@ -1001,6 +1004,9 @@ $currentDate = date('F d, Y');
                 <button onclick="window.print()" class="btn btn-print">
                     <i class="fas fa-print"></i> Print Profile
                 </button>
+                <a href="edit_profile.php?id=<?php echo $profile['id']; ?>" class="btn btn-primary">
+                    <i class="fas fa-edit"></i> Edit Profile
+                </a>
             </div>
         </div>
     </div>
