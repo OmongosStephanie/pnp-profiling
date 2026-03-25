@@ -14,6 +14,10 @@ $db = $database->getConnection();
 // Get profile ID from URL
 $id = isset($_GET['id']) ? $_GET['id'] : 0;
 
+// Get return URL parameters
+$return_to = isset($_GET['return_to']) ? $_GET['return_to'] : 'profiles';
+$barangay = isset($_GET['barangay']) ? $_GET['barangay'] : '';
+
 if ($id == 0) {
     header("Location: dashboard.php");
     exit();
@@ -53,13 +57,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['profile_picture'])) {
     $target_file = $target_dir . $file_name;
     $imageFileType = strtolower(pathinfo($target_file, PATHINFO_EXTENSION));
     
-    // Check if image file is actual image
     $check = getimagesize($_FILES['profile_picture']['tmp_name']);
     if ($check !== false) {
-        // Allow certain file formats
         if ($imageFileType == "jpg" || $imageFileType == "png" || $imageFileType == "jpeg" || $imageFileType == "gif") {
             if (move_uploaded_file($_FILES['profile_picture']['tmp_name'], $target_file)) {
-                // Update profile picture in database
                 $update_query = "UPDATE biographical_profiles SET profile_picture = :profile_picture WHERE id = :id";
                 $update_stmt = $db->prepare($update_query);
                 $update_stmt->execute([
@@ -67,9 +68,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['profile_picture'])) {
                     ':id' => $id
                 ]);
                 
-                // Set success message in session and redirect
                 $_SESSION['success_message'] = "Profile picture updated successfully!";
-                header("Location: view_profile.php?id=" . $id);
+                
+                // Redirect back to the appropriate page
+                if ($return_to == 'barangay_profiles' && !empty($barangay_profiles)) {
+                    header("Location: barangay_profiles.php?barangay=" . urlencode($barangay_profiles));
+                } else {
+                    header("Location: barangay_profiles.php?barangay=" . $id);
+                }
                 exit();
             } else {
                 $error = "Sorry, there was an error uploading your file.";
@@ -85,10 +91,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['profile_picture'])) {
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) {
     try {
-        // Begin transaction
         $db->beginTransaction();
         
-        // Process position_roles - combine multiple checkboxes
+        // Process position_roles
         if (isset($_POST['position_roles']) && is_array($_POST['position_roles'])) {
             $position_roles = implode(', ', $_POST['position_roles']);
         } elseif (isset($_POST['position_roles_other']) && !empty($_POST['position_roles_other'])) {
@@ -97,7 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) 
             $position_roles = '';
         }
         
-        // Process drug types - combine multiple checkboxes
+        // Process drug types
         if (isset($_POST['drug_types']) && is_array($_POST['drug_types'])) {
             $drug_types = implode(', ', $_POST['drug_types']);
         } elseif (isset($_POST['drug_types_other']) && !empty($_POST['drug_types_other'])) {
@@ -106,7 +111,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) 
             $drug_types = '';
         }
         
-        // Update main profile - USING CORRECT FIELD NAMES
         $query = "UPDATE biographical_profiles SET
             full_name = :full_name,
             alias = :alias,
@@ -168,7 +172,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) 
         
         $stmt = $db->prepare($query);
         
-        // Prepare parameters with null coalescing operators - USING CORRECT FIELD NAMES
         $params = [
             ':id' => $id,
             ':full_name' => $_POST['full_name'] ?? '',
@@ -259,11 +262,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) 
         
         $db->commit();
         
-        // Set success message in session
         $_SESSION['success_message'] = "Profile updated successfully!";
         
-        // Redirect to view profile
-        header("Location: view_profile.php?id=" . $id);
+        // Redirect back to the appropriate page
+        if ($return_to == 'barangay_profiles' && !empty($barangay)) {
+            header("Location: barangay_profiles.php?barangay=" . urlencode($barangay_profiles));
+        } else {
+            header("Location: barangay_profiles.php?barangay=" . urlencode($barangay_profiles));
+        }
         exit();
         
     } catch (Exception $e) {
@@ -277,17 +283,15 @@ $drugsPushedArray = !empty($profile['drugs_pushed']) ? explode(', ', $profile['d
 $drugTypesArray = !empty($profile['drugs_involved']) ? explode(', ', $profile['drugs_involved']) : [];
 $positionRolesArray = !empty($profile['position_roles']) ? explode(', ', $profile['position_roles']) : [];
 
-// Function to check if a drug is in the pushed list
 function isDrugPushed($drug, $drugsPushedArray) {
     return in_array($drug, $drugsPushedArray);
 }
 
-// Function to safely display value in inputs
 function inputValue($value) {
     return htmlspecialchars($value ?? '');
 }
 
-// Format date_time_place_of_arrest for datetime-local input
+// Format date_time_place_of_arrest
 $arrest_datetime = '';
 if (!empty($profile['date_time_place_of_arrest'])) {
     $timestamp = strtotime($profile['date_time_place_of_arrest']);
@@ -297,6 +301,15 @@ if (!empty($profile['date_time_place_of_arrest'])) {
         $arrest_datetime = $profile['date_time_place_of_arrest'];
     }
 }
+
+// Determine cancel link - SAME LOGIC AS VIEW_PROFILE.PHP
+if ($return_to == 'barangay_profiles' && !empty($barangay_profile)) {
+    $cancel_link = "barangay_profiles.php?barangay=" . urlencode($barangay);
+    $cancel_text = "Back to " . htmlspecialchars($barangay);
+} else {
+    $cancel_link = "barangay_profiles.php?barangay_profiles=" . urlencode($barangay);
+    $cancel_text = "back";
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -305,13 +318,11 @@ if (!empty($profile['date_time_place_of_arrest'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Profile - PNP Biographical Profiling System</title>
     
-    <!-- External CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     
     <style>
-        /* Global Styles */
         * {
             margin: 0;
             padding: 0;
@@ -326,7 +337,6 @@ if (!empty($profile['date_time_place_of_arrest'])) {
             padding: 20px;
         }
 
-        /* Form Container */
         .form-container {
             max-width: 1100px;
             margin: 0 auto;
@@ -334,7 +344,6 @@ if (!empty($profile['date_time_place_of_arrest'])) {
             box-shadow: 0 4px 20px rgba(0,0,0,0.08);
         }
 
-        /* Official PNP Header */
         .pnp-header {
             background: #0a2f4d;
             color: white;
@@ -399,12 +408,10 @@ if (!empty($profile['date_time_place_of_arrest'])) {
             font-weight: 500;
         }
 
-        /* Main Content */
         .main-content {
             padding: 20px;
         }
 
-        /* PHOTO SECTION */
         .photo-section {
             border: 1px solid #e2e8f0;
             border-radius: 8px;
@@ -476,7 +483,6 @@ if (!empty($profile['date_time_place_of_arrest'])) {
             display: none;
         }
 
-        /* Section Styles */
         .data-section {
             border: 1px solid #e2e8f0;
             border-radius: 8px;
@@ -505,7 +511,6 @@ if (!empty($profile['date_time_place_of_arrest'])) {
             padding: 15px;
         }
 
-        /* Form Styles */
         .form-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -552,7 +557,6 @@ if (!empty($profile['date_time_place_of_arrest'])) {
             min-height: 60px;
         }
 
-        /* Table Styles */
         .compact-table {
             width: 100%;
             border-collapse: collapse;
@@ -581,7 +585,6 @@ if (!empty($profile['date_time_place_of_arrest'])) {
             font-size: 12px;
         }
 
-        /* Checkbox Container */
         .checkbox-container {
             background: #f8fafc;
             border: 1px solid #e2e8f0;
@@ -619,7 +622,6 @@ if (!empty($profile['date_time_place_of_arrest'])) {
             color: #334155;
         }
 
-        /* Action Buttons */
         .action-bar {
             padding: 15px 20px;
             display: flex;
@@ -686,7 +688,6 @@ if (!empty($profile['date_time_place_of_arrest'])) {
             background: #fecaca;
         }
 
-        /* Alert */
         .alert {
             background: #f8fafc;
             border-left: 4px solid #0f172a;
@@ -709,7 +710,6 @@ if (!empty($profile['date_time_place_of_arrest'])) {
             background: #fef2f2;
         }
 
-        /* Profile ID Badge */
         .profile-id-badge {
             background: #0a2f4d;
             color: white;
@@ -725,7 +725,6 @@ if (!empty($profile['date_time_place_of_arrest'])) {
             color: #c9a959;
         }
 
-        /* Footer */
         .form-footer {
             text-align: center;
             padding: 20px;
@@ -756,7 +755,6 @@ if (!empty($profile['date_time_place_of_arrest'])) {
 </head>
 <body>
     <div class="form-container">
-        <!-- PNP Header -->
         <div class="pnp-header">
             <div class="header-content">
                 <div class="dilg">Department of the Interior and Local Government</div>
@@ -773,7 +771,6 @@ if (!empty($profile['date_time_place_of_arrest'])) {
             </div>
         </div>
 
-        <!-- Main Content -->
         <div class="main-content">
             <?php if ($message): ?>
                 <div class="alert alert-success">
@@ -791,9 +788,13 @@ if (!empty($profile['date_time_place_of_arrest'])) {
                 <span class="profile-id-badge">
                     <i class="fas fa-id-card"></i> Editing Profile #<?php echo str_pad($profile['id'], 5, '0', STR_PAD_LEFT); ?>
                 </span>
+                <?php if ($return_to == 'barangay' && !empty($barangay)): ?>
+                    <span class="profile-id-badge" style="background: #c9a959; margin-left: 10px;">
+                        <i class="fas fa-map-marker-alt"></i> <?php echo htmlspecialchars($barangay); ?>
+                    </span>
+                <?php endif; ?>
             </div>
 
-            <!-- PHOTO SECTION -->
             <div class="photo-section">
                 <div class="photo-container">
                     <div class="photo-box" id="picturePreview">
@@ -823,20 +824,17 @@ if (!empty($profile['date_time_place_of_arrest'])) {
                         <div class="form-grid">
                             <div class="form-field full-width">
                                 <label>FULL NAME</label>
-                                <input type="text" class="form-control" name="full_name" required 
-                                       value="<?php echo inputValue($profile['full_name']); ?>">
+                                <input type="text" class="form-control" name="full_name" required value="<?php echo inputValue($profile['full_name']); ?>">
                             </div>
                             
                             <div class="form-field">
                                 <label>ALIAS</label>
-                                <input type="text" class="form-control" name="alias" 
-                                       value="<?php echo inputValue($profile['alias']); ?>">
+                                <input type="text" class="form-control" name="alias" value="<?php echo inputValue($profile['alias']); ?>">
                             </div>
                             
                             <div class="form-field">
                                 <label>GROUP/GANG AFFILIATION</label>
-                                <input type="text" class="form-control" name="group_affiliation"
-                                       value="<?php echo inputValue($profile['group_affiliation']); ?>">
+                                <input type="text" class="form-control" name="group_affiliation" value="<?php echo inputValue($profile['group_affiliation']); ?>">
                             </div>
                             
                             <div class="form-field full-width">
@@ -844,31 +842,25 @@ if (!empty($profile['date_time_place_of_arrest'])) {
                                 <div class="checkbox-container">
                                     <div class="checkbox-group">
                                         <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" name="position_roles[]" value="User" id="posUser"
-                                                   <?php echo in_array('User', $positionRolesArray) ? 'checked' : ''; ?>>
+                                            <input class="form-check-input" type="checkbox" name="position_roles[]" value="User" id="posUser" <?php echo in_array('User', $positionRolesArray) ? 'checked' : ''; ?>>
                                             <label class="form-check-label" for="posUser">User</label>
                                         </div>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" name="position_roles[]" value="Pusher" id="posPusher"
-                                                   <?php echo in_array('Pusher', $positionRolesArray) ? 'checked' : ''; ?>>
+                                            <input class="form-check-input" type="checkbox" name="position_roles[]" value="Pusher" id="posPusher" <?php echo in_array('Pusher', $positionRolesArray) ? 'checked' : ''; ?>>
                                             <label class="form-check-label" for="posPusher">Pusher</label>
                                         </div>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" name="position_roles[]" value="Runner" id="posRunner"
-                                                   <?php echo in_array('Runner', $positionRolesArray) ? 'checked' : ''; ?>>
+                                            <input class="form-check-input" type="checkbox" name="position_roles[]" value="Runner" id="posRunner" <?php echo in_array('Runner', $positionRolesArray) ? 'checked' : ''; ?>>
                                             <label class="form-check-label" for="posRunner">Runner</label>
                                         </div>
                                     </div>
-                                    <input type="text" class="form-control" style="margin-top: 10px;" name="position_roles_other" 
-                                           placeholder="Other position/s (separate with commas)"
-                                           value="">
+                                    <input type="text" class="form-control" style="margin-top: 10px;" name="position_roles_other" placeholder="Other position/s (separate with commas)" value="">
                                 </div>
                             </div>
                             
                             <div class="form-field">
                                 <label>AGE</label>
-                                <input type="number" class="form-control" name="age" required
-                                       value="<?php echo inputValue($profile['age']); ?>">
+                                <input type="number" class="form-control" name="age" required value="<?php echo inputValue($profile['age']); ?>">
                             </div>
                             
                             <div class="form-field">
@@ -882,14 +874,12 @@ if (!empty($profile['date_time_place_of_arrest'])) {
                             
                             <div class="form-field">
                                 <label>DATE OF BIRTH</label>
-                                <input type="date" class="form-control" name="dob" required
-                                       value="<?php echo inputValue($profile['dob']); ?>">
+                                <input type="date" class="form-control" name="dob" required value="<?php echo inputValue($profile['dob']); ?>">
                             </div>
                             
                             <div class="form-field">
                                 <label>PLACE OF BIRTH</label>
-                                <input type="text" class="form-control" name="pob" required
-                                       value="<?php echo inputValue($profile['pob']); ?>">
+                                <input type="text" class="form-control" name="pob" required value="<?php echo inputValue($profile['pob']); ?>">
                             </div>
                             
                             <div class="form-field">
@@ -909,44 +899,37 @@ if (!empty($profile['date_time_place_of_arrest'])) {
                             
                             <div class="form-field">
                                 <label>OCCUPATION</label>
-                                <input type="text" class="form-control" name="occupation"
-                                       value="<?php echo inputValue($profile['occupation']); ?>">
+                                <input type="text" class="form-control" name="occupation" value="<?php echo inputValue($profile['occupation']); ?>">
                             </div>
                             
                             <div class="form-field">
                                 <label>COMPANY/OFFICE</label>
-                                <input type="text" class="form-control" name="company_office"
-                                       value="<?php echo inputValue($profile['company_office']); ?>">
+                                <input type="text" class="form-control" name="company_office" value="<?php echo inputValue($profile['company_office']); ?>">
                             </div>
                             
                             <div class="form-field">
                                 <label>TECHNICAL SKILLS</label>
-                                <input type="text" class="form-control" name="technical_skills"
-                                       value="<?php echo inputValue($profile['technical_skills']); ?>">
+                                <input type="text" class="form-control" name="technical_skills" value="<?php echo inputValue($profile['technical_skills']); ?>">
                             </div>
                             
                             <div class="form-field">
                                 <label>ETHNIC GROUP</label>
-                                <input type="text" class="form-control" name="ethnic_group"
-                                       value="<?php echo inputValue($profile['ethnic_group']); ?>">
+                                <input type="text" class="form-control" name="ethnic_group" value="<?php echo inputValue($profile['ethnic_group']); ?>">
                             </div>
                             
                             <div class="form-field">
                                 <label>LANGUAGES/DIALECTS</label>
-                                <input type="text" class="form-control" name="languages"
-                                       value="<?php echo inputValue($profile['languages']); ?>">
+                                <input type="text" class="form-control" name="languages" value="<?php echo inputValue($profile['languages']); ?>">
                             </div>
                             
                             <div class="form-field full-width">
                                 <label>PRESENT ADDRESS</label>
-                                <input type="text" class="form-control" name="present_address"
-                                       value="<?php echo inputValue($profile['present_address']); ?>">
+                                <input type="text" class="form-control" name="present_address" value="<?php echo inputValue($profile['present_address']); ?>">
                             </div>
                             
                             <div class="form-field full-width">
                                 <label>PROVINCIAL ADDRESS</label>
-                                <input type="text" class="form-control" name="provincial_address"
-                                       value="<?php echo inputValue($profile['provincial_address']); ?>">
+                                <input type="text" class="form-control" name="provincial_address" value="<?php echo inputValue($profile['provincial_address']); ?>">
                             </div>
                             
                             <div class="form-field">
@@ -962,38 +945,32 @@ if (!empty($profile['date_time_place_of_arrest'])) {
                             
                             <div class="form-field">
                                 <label>CITIZENSHIP</label>
-                                <input type="text" class="form-control" name="citizenship"
-                                       value="<?php echo inputValue($profile['citizenship']) ?: 'Filipino'; ?>">
+                                <input type="text" class="form-control" name="citizenship" value="<?php echo inputValue($profile['citizenship']) ?: 'Filipino'; ?>">
                             </div>
                             
                             <div class="form-field">
                                 <label>RELIGION</label>
-                                <input type="text" class="form-control" name="religion"
-                                       value="<?php echo inputValue($profile['religion']); ?>">
+                                <input type="text" class="form-control" name="religion" value="<?php echo inputValue($profile['religion']); ?>">
                             </div>
                             
                             <div class="form-field">
                                 <label>HEIGHT (ft/in)</label>
-                                <input type="text" class="form-control" name="height_ft" placeholder="e.g., 5'5&quot;"
-                                       value="<?php echo inputValue($profile['height_ft']); ?>">
+                                <input type="text" class="form-control" name="height_ft" placeholder="e.g., 5'5&quot;" value="<?php echo inputValue($profile['height_ft']); ?>">
                             </div>
                             
                             <div class="form-field">
                                 <label>WEIGHT (kg)</label>
-                                <input type="number" step="0.01" class="form-control" name="weight_kg"
-                                       value="<?php echo inputValue($profile['weight_kg']); ?>">
+                                <input type="number" step="0.01" class="form-control" name="weight_kg" value="<?php echo inputValue($profile['weight_kg']); ?>">
                             </div>
                             
                             <div class="form-field">
                                 <label>EYES COLOR</label>
-                                <input type="text" class="form-control" name="eyes_color"
-                                       value="<?php echo inputValue($profile['eyes_color']); ?>">
+                                <input type="text" class="form-control" name="eyes_color" value="<?php echo inputValue($profile['eyes_color']); ?>">
                             </div>
                             
                             <div class="form-field">
                                 <label>HAIR COLOR</label>
-                                <input type="text" class="form-control" name="hair_color"
-                                       value="<?php echo inputValue($profile['hair_color']); ?>">
+                                <input type="text" class="form-control" name="hair_color" value="<?php echo inputValue($profile['hair_color']); ?>">
                             </div>
                             
                             <div class="form-field">
@@ -1008,8 +985,7 @@ if (!empty($profile['date_time_place_of_arrest'])) {
                             
                             <div class="form-field">
                                 <label>COMPLEXION</label>
-                                <input type="text" class="form-control" name="complexion"
-                                       value="<?php echo inputValue($profile['complexion']); ?>">
+                                <input type="text" class="form-control" name="complexion" value="<?php echo inputValue($profile['complexion']); ?>">
                             </div>
                             
                             <div class="form-field full-width">
@@ -1017,7 +993,6 @@ if (!empty($profile['date_time_place_of_arrest'])) {
                                 <textarea class="form-control" name="distinguishing_marks" rows="2"><?php echo inputValue($profile['distinguishing_marks']); ?></textarea>
                             </div>
                             
-                            <!-- Arrest Record Fields - USING CORRECT FIELD NAMES -->
                             <div class="form-field full-width">
                                 <label>PREVIOUS ARREST RECORD</label>
                                 <textarea class="form-control" name="previous_arrest" rows="2"><?php echo inputValue($profile['previous_arrest']); ?></textarea>
@@ -1054,43 +1029,43 @@ if (!empty($profile['date_time_place_of_arrest'])) {
                     </div>
                     <div class="section-content">
                         <table class="compact-table">
-                             <thead>
+                            <thead>
                                 <th style="width: 100px;"></th>
                                 <th>Father</th>
                                 <th>Mother</th>
-                             </thead>
-                             <tbody>
-                                 <tr>
+                            </thead>
+                            <tbody>
+                                <tr>
                                     <td><strong>Name</strong></td>
                                     <td><input type="text" class="form-control" name="father_name" value="<?php echo inputValue($profile['father_name']); ?>"></td>
                                     <td><input type="text" class="form-control" name="mother_name" value="<?php echo inputValue($profile['mother_name']); ?>"></td>
-                                 </tr>
-                                 <tr>
+                                </tr>
+                                <tr>
                                     <td><strong>Known Address</strong></td>
                                     <td><input type="text" class="form-control" name="father_address" value="<?php echo inputValue($profile['father_address']); ?>"></td>
                                     <td><input type="text" class="form-control" name="mother_address" value="<?php echo inputValue($profile['mother_address']); ?>"></td>
-                                 </tr>
-                                 <tr>
+                                </tr>
+                                <tr>
                                     <td><strong>Date of Birth</strong></td>
                                     <td><input type="date" class="form-control" name="father_dob" value="<?php echo inputValue($profile['father_dob']); ?>"></td>
                                     <td><input type="date" class="form-control" name="mother_dob" value="<?php echo inputValue($profile['mother_dob']); ?>"></td>
-                                 </tr>
-                                 <tr>
+                                </tr>
+                                <tr>
                                     <td><strong>Age</strong></td>
                                     <td><input type="number" class="form-control" name="father_age" value="<?php echo inputValue($profile['father_age']); ?>"></td>
                                     <td><input type="number" class="form-control" name="mother_age" value="<?php echo inputValue($profile['mother_age']); ?>"></td>
-                                 </tr>
-                                 <tr>
+                                </tr>
+                                <tr>
                                     <td><strong>Occupation</strong></td>
                                     <td><input type="text" class="form-control" name="father_occupation" value="<?php echo inputValue($profile['father_occupation']); ?>"></td>
                                     <td><input type="text" class="form-control" name="mother_occupation" value="<?php echo inputValue($profile['mother_occupation']); ?>"></td>
-                                 </tr>
-                             </tbody>
-                         </table>
+                                </tr>
+                            </tbody>
+                        </table>
                         
                         <div style="margin-top: 15px;">
                             <table class="compact-table">
-                                 <tr>
+                                <thead>
                                     <th style="width: 100px;">Spouse</th>
                                     <td><input type="text" class="form-control" name="spouse_name" value="<?php echo inputValue($profile['spouse_name']); ?>"></td>
                                     <th>Age</th>
@@ -1099,8 +1074,8 @@ if (!empty($profile['date_time_place_of_arrest'])) {
                                     <td><input type="text" class="form-control" name="spouse_occupation" value="<?php echo inputValue($profile['spouse_occupation']); ?>"></td>
                                     <th>Address</th>
                                     <td><input type="text" class="form-control" name="spouse_address" value="<?php echo inputValue($profile['spouse_address']); ?>"></td>
-                                 </tr>
-                             </table>
+                                </thead>
+                            </table>
                         </div>
                         
                         <div style="margin-top: 15px;">
@@ -1108,14 +1083,12 @@ if (!empty($profile['date_time_place_of_arrest'])) {
                             <div id="siblingsContainer">
                                 <table class="compact-table" style="margin-top: 5px;" id="siblingsTable">
                                     <thead>
-                                         <tr>
-                                            <th>Name</th>
-                                            <th>Age</th>
-                                            <th>Occupation</th>
-                                            <th>Status</th>
-                                            <th>Address</th>
-                                            <th>Action</th>
-                                         </tr>
+                                        <th>Name</th>
+                                        <th>Age</th>
+                                        <th>Occupation</th>
+                                        <th>Status</th>
+                                        <th>Address</th>
+                                        <th>Action</th>
                                     </thead>
                                     <tbody>
                                         <?php if (count($siblings) > 0): ?>
@@ -1140,7 +1113,7 @@ if (!empty($profile['date_time_place_of_arrest'])) {
                                             </tr>
                                         <?php endif; ?>
                                     </tbody>
-                                 </table>
+                                </table>
                                 <button type="button" class="btn btn-secondary btn-sm" style="margin-top: 10px;" onclick="addSiblingRow()">
                                     <i class="fas fa-plus"></i> Add Sibling
                                 </button>
@@ -1152,7 +1125,7 @@ if (!empty($profile['date_time_place_of_arrest'])) {
                 <!-- III. TACTICAL INFORMATION -->
                 <div class="data-section">
                     <div class="section-title">
-                        <i class="fas fa-info-circle"></i> III. TACTICAL INFORMATION 
+                        <i class="fas fa-info-circle"></i> III. TACTICAL INFORMATION
                     </div>
                     <div class="section-content">
                         <div class="form-grid">
@@ -1222,29 +1195,23 @@ if (!empty($profile['date_time_place_of_arrest'])) {
                                 <div class="checkbox-container">
                                     <div class="checkbox-group">
                                         <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" name="drugs_pushed[]" value="Shabu" id="drugShabu"
-                                                   <?php echo isDrugPushed('Shabu', $drugsPushedArray) ? 'checked' : ''; ?>>
+                                            <input class="form-check-input" type="checkbox" name="drugs_pushed[]" value="Shabu" id="drugShabu" <?php echo isDrugPushed('Shabu', $drugsPushedArray) ? 'checked' : ''; ?>>
                                             <label class="form-check-label" for="drugShabu">Shabu</label>
                                         </div>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" name="drugs_pushed[]" value="Marijuana" id="drugMarijuana"
-                                                   <?php echo isDrugPushed('Marijuana', $drugsPushedArray) ? 'checked' : ''; ?>>
+                                            <input class="form-check-input" type="checkbox" name="drugs_pushed[]" value="Marijuana" id="drugMarijuana" <?php echo isDrugPushed('Marijuana', $drugsPushedArray) ? 'checked' : ''; ?>>
                                             <label class="form-check-label" for="drugMarijuana">Marijuana</label>
                                         </div>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" name="drugs_pushed[]" value="Ecstasy" id="drugEcstasy"
-                                                   <?php echo isDrugPushed('Ecstasy', $drugsPushedArray) ? 'checked' : ''; ?>>
+                                            <input class="form-check-input" type="checkbox" name="drugs_pushed[]" value="Ecstasy" id="drugEcstasy" <?php echo isDrugPushed('Ecstasy', $drugsPushedArray) ? 'checked' : ''; ?>>
                                             <label class="form-check-label" for="drugEcstasy">Ecstasy</label>
                                         </div>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" name="drugs_pushed[]" value="Cocaine" id="drugCocaine"
-                                                   <?php echo isDrugPushed('Cocaine', $drugsPushedArray) ? 'checked' : ''; ?>>
+                                            <input class="form-check-input" type="checkbox" name="drugs_pushed[]" value="Cocaine" id="drugCocaine" <?php echo isDrugPushed('Cocaine', $drugsPushedArray) ? 'checked' : ''; ?>>
                                             <label class="form-check-label" for="drugCocaine">Cocaine</label>
                                         </div>
                                     </div>
-                                    <input type="text" class="form-control" style="margin-top: 10px;" name="other_drugs_pushed" 
-                                           placeholder="Other drugs not listed above"
-                                           value="<?php echo inputValue($profile['other_drugs_pushed']); ?>">
+                                    <input type="text" class="form-control" style="margin-top: 10px;" name="other_drugs_pushed" placeholder="Other drugs not listed above" value="<?php echo inputValue($profile['other_drugs_pushed']); ?>">
                                 </div>
                             </div>
                         </div>
@@ -1299,14 +1266,13 @@ if (!empty($profile['date_time_place_of_arrest'])) {
                     <a href="view_profile.php?id=<?php echo $id; ?>" class="btn btn-info">
                         <i class="fas fa-eye"></i> View Profile
                     </a>
-                    <a href="profiles.php" class="btn btn-secondary">
-                        <i class="fas fa-times"></i> Cancel
+                    <a href="<?php echo $cancel_link; ?>" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> <?php echo $cancel_text; ?>
                     </a>
                 </div>
             </form>
         </div>
 
-        <!-- Footer -->
         <div class="form-footer">
             <small>Department of the Interior and Local Government | PHILIPPINE NATIONAL POLICE<br>
             BUKIDNON POLICE PROVINCIAL OFFICE | MANOLO FORTICH POLICE STATION<br>
@@ -1315,31 +1281,25 @@ if (!empty($profile['date_time_place_of_arrest'])) {
     </div>
 
     <script>
-        // Picture upload preview
         document.getElementById('profilePicture').addEventListener('change', function(e) {
             if (this.files && this.files[0]) {
                 var reader = new FileReader();
                 reader.onload = function(e) {
                     var pictureBox = document.getElementById('picturePreview');
                     pictureBox.innerHTML = '<img src="' + e.target.result + '" alt="Profile Picture">';
-                    
-                    // Auto-submit the picture form
                     document.getElementById('pictureForm').submit();
                 }
                 reader.readAsDataURL(this.files[0]);
             }
         });
 
-        // Function to add sibling row
         function addSiblingRow() {
             const table = document.getElementById('siblingsTable').getElementsByTagName('tbody')[0];
             const newRow = table.insertRow();
-            
             const cells = [];
             for (let i = 0; i < 6; i++) {
                 cells.push(newRow.insertCell(i));
             }
-            
             cells[0].innerHTML = '<input type="text" class="form-control" name="sibling_name[]">';
             cells[1].innerHTML = '<input type="number" class="form-control" name="sibling_age[]">';
             cells[2].innerHTML = '<input type="text" class="form-control" name="sibling_occupation[]">';
@@ -1348,11 +1308,9 @@ if (!empty($profile['date_time_place_of_arrest'])) {
             cells[5].innerHTML = '<button type="button" class="btn btn-danger btn-sm" onclick="removeRow(this)"><i class="fas fa-trash"></i></button>';
         }
         
-        // Function to remove sibling row
         function removeRow(button) {
             const row = button.closest('tr');
             const tableBody = row.parentNode;
-            
             if (tableBody.rows.length > 1) {
                 row.remove();
             } else {
@@ -1363,10 +1321,8 @@ if (!empty($profile['date_time_place_of_arrest'])) {
             }
         }
         
-        // Auto-calculate age from date of birth
         const dobInput = document.querySelector('input[name="dob"]');
         const ageInput = document.querySelector('input[name="age"]');
-        
         if (dobInput && ageInput) {
             dobInput.addEventListener('change', function() {
                 if (this.value) {
@@ -1374,37 +1330,27 @@ if (!empty($profile['date_time_place_of_arrest'])) {
                     const today = new Date();
                     let age = today.getFullYear() - birthDate.getFullYear();
                     const monthDiff = today.getMonth() - birthDate.getMonth();
-                    
                     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
                         age--;
                     }
-                    
                     ageInput.value = age;
                 }
             });
         }
         
-        // Confirm before leaving with unsaved changes
         let formChanged = false;
         const form = document.getElementById('profileForm');
         const formInputs = form.querySelectorAll('input, select, textarea');
-        
         formInputs.forEach(input => {
-            input.addEventListener('change', () => {
-                formChanged = true;
-            });
+            input.addEventListener('change', () => { formChanged = true; });
         });
-        
         window.addEventListener('beforeunload', function(e) {
             if (formChanged) {
                 e.preventDefault();
                 e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
             }
         });
-        
-        form.addEventListener('submit', function() {
-            formChanged = false;
-        });
+        form.addEventListener('submit', function() { formChanged = false; });
     </script>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

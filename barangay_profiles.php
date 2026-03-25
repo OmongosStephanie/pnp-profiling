@@ -23,48 +23,21 @@ if (empty($selectedBarangay)) {
 $selectedYear = isset($_GET['year']) ? $_GET['year'] : '';
 $selectedMonth = isset($_GET['month']) ? $_GET['month'] : '';
 
-// Get distinct years from date_time_place_of_arrest for this barangay
-$yearQuery = "SELECT DISTINCT 
-               YEAR(STR_TO_DATE(date_time_place_of_arrest, '%Y-%m-%d %H:%i:%s')) as year 
-               FROM biographical_profiles 
-               WHERE present_address LIKE :barangay 
-               AND date_time_place_of_arrest IS NOT NULL 
-               AND date_time_place_of_arrest != ''
-               ORDER BY year DESC";
-$yearStmt = $db->prepare($yearQuery);
-$barangayParam = $selectedBarangay . '%';
-$yearStmt->bindParam(':barangay', $barangayParam);
-$yearStmt->execute();
-$years = $yearStmt->fetchAll(PDO::FETCH_ASSOC);
-
-// Get distinct months from date_time_place_of_arrest for this barangay
-$monthQuery = "SELECT DISTINCT 
-                MONTH(STR_TO_DATE(date_time_place_of_arrest, '%Y-%m-%d %H:%i:%s')) as month, 
-                MONTHNAME(STR_TO_DATE(date_time_place_of_arrest, '%Y-%m-%d %H:%i:%s')) as month_name 
-                FROM biographical_profiles 
-                WHERE present_address LIKE :barangay 
-                AND date_time_place_of_arrest IS NOT NULL 
-                AND date_time_place_of_arrest != ''
-                ORDER BY month";
-$monthStmt = $db->prepare($monthQuery);
-$monthStmt->bindParam(':barangay', $barangayParam);
-$monthStmt->execute();
-$months = $monthStmt->fetchAll(PDO::FETCH_ASSOC);
-
 // Get profiles for this specific barangay with filters
 $query = "SELECT * FROM biographical_profiles 
           WHERE present_address LIKE :barangay";
 
 if (!empty($selectedYear)) {
-    $query .= " AND YEAR(STR_TO_DATE(date_time_place_of_arrest, '%Y-%m-%d %H:%i:%s')) = :year";
+    $query .= " AND YEAR(date_time_place_of_arrest) = :year";
 }
 if (!empty($selectedMonth)) {
-    $query .= " AND MONTH(STR_TO_DATE(date_time_place_of_arrest, '%Y-%m-%d %H:%i:%s')) = :month";
+    $query .= " AND MONTH(date_time_place_of_arrest) = :month";
 }
 
-$query .= " ORDER BY created_at DESC";
+$query .= " ORDER BY date_time_place_of_arrest DESC, created_at DESC";
 
 $stmt = $db->prepare($query);
+$barangayParam = '%' . $selectedBarangay . '%';
 $stmt->bindParam(':barangay', $barangayParam);
 
 if (!empty($selectedYear)) {
@@ -94,26 +67,44 @@ $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
 $currentDate = date('F d, Y');
 $generatedBy = $_SESSION['full_name'] . ' - ' . $_SESSION['rank'];
 
+// Create array of all months (January to December)
+$allMonths = [
+    1 => 'January',
+    2 => 'February',
+    3 => 'March',
+    4 => 'April',
+    5 => 'May',
+    6 => 'June',
+    7 => 'July',
+    8 => 'August',
+    9 => 'September',
+    10 => 'October',
+    11 => 'November',
+    12 => 'December'
+];
+
+// Create array of all years (2016 to 2026)
+$allYears = [];
+for ($y = 2016; $y <= 2026; $y++) {
+    $allYears[] = $y;
+}
+// Sort years in descending order
+$allYears = array_reverse($allYears);
+
 // Function to format date_time_place_of_arrest
 function formatArrestDate($dateTimePlace) {
     if (empty($dateTimePlace)) {
         return null;
     }
-    // Try to parse the date from the string
-    // Assuming format like "2024-03-15 14:30 - Poblacion" or similar
-    $parts = explode(' - ', $dateTimePlace);
-    $dateTime = $parts[0];
-    $place = isset($parts[1]) ? $parts[1] : '';
     
-    if (!empty($dateTime)) {
-        $timestamp = strtotime($dateTime);
-        if ($timestamp !== false) {
-            return [
-                'date' => date('M d, Y', $timestamp),
-                'time' => date('h:i A', $timestamp),
-                'place' => $place
-            ];
-        }
+    // Parse the datetime string - assuming format like "2024-03-15 14:30:00"
+    $timestamp = strtotime($dateTimePlace);
+    if ($timestamp !== false && $timestamp > 0) {
+        return [
+            'date' => date('M d, Y', $timestamp),
+            'time' => date('h:i A', $timestamp),
+            'full' => date('M d, Y h:i A', $timestamp)
+        ];
     }
     return null;
 }
@@ -605,36 +596,15 @@ function formatArrestDate($dateTimePlace) {
             background: #f8fafc;
         }
 
-        .status-badge {
-            padding: 4px 10px;
+        .arrest-date-badge {
+            background: #fef3c7;
+            color: #92400e;
+            padding: 6px 12px;
             border-radius: 20px;
-            font-size: 11px;
-            font-weight: 600;
+            font-size: 12px;
+            font-weight: 500;
             display: inline-block;
-        }
-
-        .status-active {
-            background: #e3f9e5;
-            color: #28a745;
-        }
-
-        .status-delisted {
-            background: #ffe5e5;
-            color: #dc3545;
-        }
-
-        .status-archived {
-            background: #fff3cd;
-            color: #856404;
-        }
-
-        .arrest-badge {
-            background: #f1f5f9;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 10px;
-            color: #64748b;
-            margin-left: 5px;
+            white-space: nowrap;
         }
 
         .no-arrest {
@@ -663,10 +633,8 @@ function formatArrestDate($dateTimePlace) {
 
         .btn-icon.view { background: #0a2f4d; }
         .btn-icon.edit { background: #c9a959; }
-        .btn-icon.print { background: #0891b2; }
         .btn-icon.view:hover { background: #123b5e; }
         .btn-icon.edit:hover { background: #d4b36a; }
-        .btn-icon.print:hover { background: #0e7490; transform: translateY(-2px); }
 
         .empty-state {
             text-align: center;
@@ -756,6 +724,15 @@ function formatArrestDate($dateTimePlace) {
                 flex-direction: column;
                 gap: 15px;
             }
+            
+            .modern-table {
+                font-size: 12px;
+            }
+            
+            .modern-table th,
+            .modern-table td {
+                padding: 10px 8px;
+            }
         }
     </style>
 </head>
@@ -793,7 +770,7 @@ function formatArrestDate($dateTimePlace) {
                     <li><a href="dashboard.php"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
                     <li><a href="profile_form.php"><i class="fas fa-plus-circle"></i> New Profile</a></li>
                     <li><a href="profiles.php"><i class="fas fa-list"></i> View Profiles</a></li>
-                    <li><a href="barangays.php"><i class="fas fa-map-marker-alt"></i> Barangays</a></li>
+                    <li><a href="barangays.php" class="active"><i class="fas fa-map-marker-alt"></i> Barangays</a></li>
                     <li><a href="reports.php"><i class="fas fa-chart-bar"></i> Reports</a></li>
                     <?php if ($_SESSION['role'] == 'admin'): ?>
                     <li><a href="users.php"><i class="fas fa-users-cog"></i> Account</a></li>
@@ -824,32 +801,6 @@ function formatArrestDate($dateTimePlace) {
             </div>
         </div>
 
-        <!-- Barangay Info Card -->
-        <div class="barangay-info">
-            <h3>
-                <i class="fas fa-map-marker-alt"></i>
-                <?php echo htmlspecialchars($selectedBarangay); ?>
-            </h3>
-            <div class="barangay-stats">
-                <div class="stat-item">
-                    <div class="stat-value"><?php echo $stats['total']; ?></div>
-                    <div class="stat-label">Total Profiles</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value" style="color: #28a745;"><?php echo $stats['active_count']; ?></div>
-                    <div class="stat-label">Active</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value" style="color: #dc3545;"><?php echo $stats['delisted_count']; ?></div>
-                    <div class="stat-label">Delisted</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value" style="color: #ffc107;"><?php echo $stats['arrested_count']; ?></div>
-                    <div class="stat-label">Arrests</div>
-                </div>
-            </div>
-        </div>
-
         <!-- Filter Section with Year and Month -->
         <div class="filter-section no-print">
             <div class="filter-header">
@@ -864,10 +815,10 @@ function formatArrestDate($dateTimePlace) {
                     <label><i class="fas fa-calendar"></i> Arrest Year</label>
                     <select name="year" class="filter-select">
                         <option value="">All Years</option>
-                        <?php foreach ($years as $year): ?>
-                            <option value="<?php echo $year['year']; ?>" 
-                                <?php echo $selectedYear == $year['year'] ? 'selected' : ''; ?>>
-                                <?php echo $year['year']; ?>
+                        <?php foreach ($allYears as $year): ?>
+                            <option value="<?php echo $year; ?>" 
+                                <?php echo $selectedYear == $year ? 'selected' : ''; ?>>
+                                <?php echo $year; ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -877,10 +828,10 @@ function formatArrestDate($dateTimePlace) {
                     <label><i class="fas fa-calendar-alt"></i> Arrest Month</label>
                     <select name="month" class="filter-select">
                         <option value="">All Months</option>
-                        <?php foreach ($months as $month): ?>
-                            <option value="<?php echo $month['month']; ?>" 
-                                <?php echo $selectedMonth == $month['month'] ? 'selected' : ''; ?>>
-                                <?php echo $month['month_name']; ?>
+                        <?php foreach ($allMonths as $monthNum => $monthName): ?>
+                            <option value="<?php echo $monthNum; ?>" 
+                                <?php echo $selectedMonth == $monthNum ? 'selected' : ''; ?>>
+                                <?php echo $monthName; ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -912,12 +863,12 @@ function formatArrestDate($dateTimePlace) {
                     <?php if (!empty($selectedMonth)): ?>
                         <span class="filter-tag">
                             <i class="fas fa-calendar-alt"></i> 
-                            Month: <?php echo date('F', mktime(0, 0, 0, $selectedMonth, 1)); ?>
+                            Month: <?php echo $allMonths[$selectedMonth]; ?>
                         </span>
                     <?php endif; ?>
                     
                     <span style="margin-left: 10px; color: #0a2f4d;">
-                        <?php echo count($profiles); ?> records found
+                        <i class="fas fa-users"></i> <?php echo count($profiles); ?> records found
                     </span>
                 </span>
             </div>
@@ -930,41 +881,28 @@ function formatArrestDate($dateTimePlace) {
                 <div class="table-responsive">
                     <table class="modern-table">
                         <thead>
-                            <tr>
+                             <tr>
                                 <th>Full Name</th>
                                 <th>Alias</th>
                                 <th>Age</th>
                                 <th>Date/Time of Arrest</th>
-                                <th>Place of Arrest</th>
-                                <th class="no-print">Actions</th>
-                             </thead>
+                             </tr>
+                        </thead>
                         <tbody>
                             <?php foreach ($profiles as $profile): 
                                 $arrestInfo = formatArrestDate($profile['date_time_place_of_arrest'] ?? '');
                             ?>
-                             <tr>
+                            <tr>
                                 <td><?php echo htmlspecialchars($profile['full_name']); ?></td>
                                 <td><?php echo htmlspecialchars($profile['alias'] ?: '—'); ?></td>
                                 <td><?php echo $profile['age']; ?></td>
                                 <td>
                                     <?php if ($arrestInfo): ?>
-                                        <strong><?php echo $arrestInfo['date']; ?></strong>
-                                        <span class="arrest-badge">
-                                            <i class="fas fa-clock"></i> <?php echo $arrestInfo['time']; ?>
+                                        <span class="arrest-date-badge">
+                                            <i class="fas fa-calendar-check"></i> <?php echo $arrestInfo['full']; ?>
                                         </span>
                                     <?php else: ?>
-                                        <span class="no-arrest">Not arrested</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <?php if ($arrestInfo && !empty($arrestInfo['place'])): ?>
-                                        <i class="fas fa-map-marker-alt" style="color: #c9a959; margin-right: 3px;"></i>
-                                        <?php echo htmlspecialchars($arrestInfo['place']); ?>
-                                    <?php elseif (!empty($profile['arrest_place'])): ?>
-                                        <i class="fas fa-map-marker-alt" style="color: #c9a959; margin-right: 3px;"></i>
-                                        <?php echo htmlspecialchars($profile['arrest_place']); ?>
-                                    <?php else: ?>
-                                        <span class="no-arrest">Not specified</span>
+                                        <span class="no-arrest">No arrest record</span>
                                     <?php endif; ?>
                                 </td>
                                 <td class="no-print">
@@ -975,17 +913,10 @@ function formatArrestDate($dateTimePlace) {
                                             <i class="fas fa-eye"></i>
                                         </a>
                                         
-                                        <a href="edit_profile.php?id=<?php echo $profile['id']; ?>&return_to=barangay&barangay=<?php echo urlencode($selectedBarangay); ?>" 
+                                        <a href="edit_profile.php?id=<?php echo $profile['id']; ?>" 
                                            class="btn-icon edit" 
                                            title="Edit Profile">
                                             <i class="fas fa-edit"></i>
-                                        </a>
-                                        
-                                        <a href="view_profile.php?id=<?php echo $profile['id']; ?>&print=1" 
-                                           class="btn-icon print" 
-                                           title="Print Profile"
-                                           target="_blank">
-                                            <i class="fas fa-print"></i>
                                         </a>
                                     </div>
                                 </td>
@@ -999,6 +930,11 @@ function formatArrestDate($dateTimePlace) {
                     <small>
                         <i class="fas fa-database"></i> 
                         Showing <strong><?php echo count($profiles); ?></strong> profiles from <strong><?php echo htmlspecialchars($selectedBarangay); ?></strong>
+                        <?php if (!empty($selectedYear) || !empty($selectedMonth)): ?>
+                            (filtered by 
+                            <?php if (!empty($selectedYear)): ?>year <?php echo $selectedYear; ?><?php endif; ?>
+                            <?php if (!empty($selectedMonth)): ?>month of <?php echo $allMonths[$selectedMonth]; ?><?php endif; ?>)
+                        <?php endif; ?>
                     </small>
                 </div>
             <?php else: ?>

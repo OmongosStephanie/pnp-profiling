@@ -26,16 +26,6 @@ $query = "SELECT COUNT(*) as total FROM biographical_profiles";
 $stmt = $db->query($query);
 $stats['total'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
 
-// Active profiles
-$query = "SELECT COUNT(*) as total FROM biographical_profiles WHERE status = 'active'";
-$stmt = $db->query($query);
-$stats['active'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
-
-// Delisted profiles
-$query = "SELECT COUNT(*) as total FROM biographical_profiles WHERE status = 'delisted'";
-$stmt = $db->query($query);
-$stats['delisted'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
-
 // Arrested profiles - Use date_time_place_of_arrest
 $query = "SELECT COUNT(*) as total FROM biographical_profiles WHERE date_time_place_of_arrest IS NOT NULL AND date_time_place_of_arrest != ''";
 $stmt = $db->query($query);
@@ -911,50 +901,6 @@ $filtered_count = count($filtered_profiles);
                 <i class="fas fa-calendar-alt"></i> <?php echo date('F d, Y'); ?>
             </div>
         </div>
-
-        <!-- Statistics Cards -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-icon total">
-                    <i class="fas fa-users"></i>
-                </div>
-                <div class="stat-details">
-                    <h3><?php echo $stats['total']; ?></h3>
-                    <p>Total Profiles</p>
-                </div>
-            </div>
-            
-            <div class="stat-card">
-                <div class="stat-icon active">
-                    <i class="fas fa-user-check"></i>
-                </div>
-                <div class="stat-details">
-                    <h3><?php echo $stats['active']; ?></h3>
-                    <p>Active</p>
-                </div>
-            </div>
-            
-            <div class="stat-card">
-                <div class="stat-icon delisted">
-                    <i class="fas fa-user-times"></i>
-                </div>
-                <div class="stat-details">
-                    <h3><?php echo $stats['delisted']; ?></h3>
-                    <p>Delisted</p>
-                </div>
-            </div>
-            
-            <div class="stat-card">
-                <div class="stat-icon arrested">
-                    <i class="fas fa-gavel"></i>
-                </div>
-                <div class="stat-details">
-                    <h3><?php echo $stats['arrested']; ?></h3>
-                    <p>Arrest Records</p>
-                </div>
-            </div>
-        </div>
-
         <!-- Quick Filters -->
         <div class="filter-card">
             <div class="filter-header">
