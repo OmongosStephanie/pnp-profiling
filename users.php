@@ -449,8 +449,6 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
             <div class="nav-menu">
                 <ul>
                     <li><a href="dashboard.php"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
-                    <li><a href="profile_form.php"><i class="fas fa-plus-circle"></i> New Profile</a></li>
-                    <li><a href="profiles.php"><i class="fas fa-list"></i> View Profiles</a></li>
                     <li><a href="barangays.php"><i class="fas fa-map-marker-alt"></i> Barangays</a></li>
                     <li><a href="reports.php"><i class="fas fa-chart-bar"></i> Reports</a></li>
                     <li><a href="users.php" class="active"><i class="fas fa-user-cog"></i> Account</a></li>

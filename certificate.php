@@ -14,8 +14,12 @@ $db = $database->getConnection();
 // Get profile ID from URL
 $id = isset($_GET['id']) ? $_GET['id'] : 0;
 
+// Get barangay and return parameters
+$barangay = isset($_GET['barangay']) ? $_GET['barangay'] : '';
+$return_to = isset($_GET['return_to']) ? $_GET['return_to'] : 'barangay';
+
 if ($id == 0) {
-    header("Location: profiles.php");
+    header("Location: barangays.php");
     exit();
 }
 
@@ -26,7 +30,7 @@ $stmt->bindParam(':id', $id);
 $stmt->execute();
 
 if ($stmt->rowCount() == 0) {
-    header("Location: profiles.php");
+    header("Location: barangays.php");
     exit();
 }
 
@@ -38,6 +42,23 @@ $generatedBy = $_SESSION['full_name'] . ' - ' . $_SESSION['rank'];
 
 // Certificate number
 $certNumber = 'PNP-MFPS-CERT-' . str_pad($id, 5, '0', STR_PAD_LEFT) . '-' . date('Y');
+
+// Determine back link - go back to barangay profile page
+if (!empty($barangay)) {
+    $back_link = "barangay_profiles.php?barangay=" . urlencode($barangay);
+    $back_text = "Back to " . htmlspecialchars($barangay);
+} else {
+    // If no barangay is provided, try to get it from profile address
+    $addressParts = explode(',', $profile['present_address']);
+    $profileBarangay = trim($addressParts[0]);
+    if (!empty($profileBarangay)) {
+        $back_link = "barangay_profiles.php?barangay=" . urlencode($profileBarangay);
+        $back_text = "Back to " . htmlspecialchars($profileBarangay);
+    } else {
+        $back_link = "barangays.php";
+        $back_text = "Back";
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -446,8 +467,8 @@ $certNumber = 'PNP-MFPS-CERT-' . str_pad($id, 5, '0', STR_PAD_LEFT) . '-' . date
             <button onclick="window.print()" class="btn-print">
                 <i class="fas fa-print"></i> Print Certificate
             </button>
-            <a href="profiles.php" class="btn-back">
-                <i class="fas fa-arrow-left"></i> Back to Profiles
+            <a href="<?php echo $back_link; ?>" class="btn-back">
+                <i class="fas fa-arrow-left"></i> <?php echo $back_text; ?>
             </a>
         </div>
     </div>

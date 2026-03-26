@@ -14,8 +14,7 @@ $db = $database->getConnection();
 // Get profile ID from URL
 $id = isset($_GET['id']) ? $_GET['id'] : 0;
 
-// Get return URL parameters
-$return_to = isset($_GET['return_to']) ? $_GET['return_to'] : 'profiles';
+// Get barangay parameter from URL
 $barangay = isset($_GET['barangay']) ? $_GET['barangay'] : '';
 
 if ($id == 0) {
@@ -70,11 +69,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['profile_picture'])) {
                 
                 $_SESSION['success_message'] = "Profile picture updated successfully!";
                 
-                // Redirect back to the appropriate page
-                if ($return_to == 'barangay_profiles' && !empty($barangay_profiles)) {
-                    header("Location: barangay_profiles.php?barangay=" . urlencode($barangay_profiles));
+                // Redirect back to barangay page if barangay exists
+                if (!empty($barangay)) {
+                    header("Location: barangay_profiles.php?barangay=" . urlencode($barangay));
                 } else {
-                    header("Location: barangay_profiles.php?barangay=" . $id);
+                    header("Location: view_profile.php?id=" . $id);
                 }
                 exit();
             } else {
@@ -264,11 +263,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_FILES['profile_picture'])) 
         
         $_SESSION['success_message'] = "Profile updated successfully!";
         
-        // Redirect back to the appropriate page
-        if ($return_to == 'barangay_profiles' && !empty($barangay)) {
-            header("Location: barangay_profiles.php?barangay=" . urlencode($barangay_profiles));
+        // Redirect back to barangay page if barangay exists
+        if (!empty($barangay)) {
+            header("Location: barangay_profiles.php?barangay=" . urlencode($barangay));
         } else {
-            header("Location: barangay_profiles.php?barangay=" . urlencode($barangay_profiles));
+            header("Location: view_profile.php?id=" . $id);
         }
         exit();
         
@@ -302,13 +301,13 @@ if (!empty($profile['date_time_place_of_arrest'])) {
     }
 }
 
-// Determine cancel link - SAME LOGIC AS VIEW_PROFILE.PHP
-if ($return_to == 'barangay_profiles' && !empty($barangay_profile)) {
+// CANCEL LINK - ALWAYS GO BACK TO THE BARANGAY PAGE IF BARANGAY EXISTS
+if (!empty($barangay)) {
     $cancel_link = "barangay_profiles.php?barangay=" . urlencode($barangay);
     $cancel_text = "Back to " . htmlspecialchars($barangay);
 } else {
-    $cancel_link = "barangay_profiles.php?barangay_profiles=" . urlencode($barangay);
-    $cancel_text = "back";
+    $cancel_link = "view_profile.php?id=" . $id;
+    $cancel_text = "Back to Profile";
 }
 ?>
 <!DOCTYPE html>
@@ -788,7 +787,7 @@ if ($return_to == 'barangay_profiles' && !empty($barangay_profile)) {
                 <span class="profile-id-badge">
                     <i class="fas fa-id-card"></i> Editing Profile #<?php echo str_pad($profile['id'], 5, '0', STR_PAD_LEFT); ?>
                 </span>
-                <?php if ($return_to == 'barangay' && !empty($barangay)): ?>
+                <?php if (!empty($barangay)): ?>
                     <span class="profile-id-badge" style="background: #c9a959; margin-left: 10px;">
                         <i class="fas fa-map-marker-alt"></i> <?php echo htmlspecialchars($barangay); ?>
                     </span>
@@ -1035,47 +1034,47 @@ if ($return_to == 'barangay_profiles' && !empty($barangay_profile)) {
                                 <th>Mother</th>
                             </thead>
                             <tbody>
-                                <tr>
-                                    <td><strong>Name</strong></td>
-                                    <td><input type="text" class="form-control" name="father_name" value="<?php echo inputValue($profile['father_name']); ?>"></td>
-                                    <td><input type="text" class="form-control" name="mother_name" value="<?php echo inputValue($profile['mother_name']); ?>"></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Known Address</strong></td>
-                                    <td><input type="text" class="form-control" name="father_address" value="<?php echo inputValue($profile['father_address']); ?>"></td>
-                                    <td><input type="text" class="form-control" name="mother_address" value="<?php echo inputValue($profile['mother_address']); ?>"></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Date of Birth</strong></td>
-                                    <td><input type="date" class="form-control" name="father_dob" value="<?php echo inputValue($profile['father_dob']); ?>"></td>
-                                    <td><input type="date" class="form-control" name="mother_dob" value="<?php echo inputValue($profile['mother_dob']); ?>"></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Age</strong></td>
-                                    <td><input type="number" class="form-control" name="father_age" value="<?php echo inputValue($profile['father_age']); ?>"></td>
-                                    <td><input type="number" class="form-control" name="mother_age" value="<?php echo inputValue($profile['mother_age']); ?>"></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Occupation</strong></td>
-                                    <td><input type="text" class="form-control" name="father_occupation" value="<?php echo inputValue($profile['father_occupation']); ?>"></td>
-                                    <td><input type="text" class="form-control" name="mother_occupation" value="<?php echo inputValue($profile['mother_occupation']); ?>"></td>
-                                </tr>
+                                
+                                    <td><strong>Name</strong>\\
+                                    <td><input type="text" class="form-control" name="father_name" value="<?php echo inputValue($profile['father_name']); ?>">\\
+                                    <td><input type="text" class="form-control" name="mother_name" value="<?php echo inputValue($profile['mother_name']); ?>">\\
+                                
+                                
+                                    <td><strong>Known Address</strong>\\
+                                    <td><input type="text" class="form-control" name="father_address" value="<?php echo inputValue($profile['father_address']); ?>">\\
+                                    <td><input type="text" class="form-control" name="mother_address" value="<?php echo inputValue($profile['mother_address']); ?>">\\
+                                
+                                
+                                    <td><strong>Date of Birth</strong>\\
+                                    <td><input type="date" class="form-control" name="father_dob" value="<?php echo inputValue($profile['father_dob']); ?>">\\
+                                    <td><input type="date" class="form-control" name="mother_dob" value="<?php echo inputValue($profile['mother_dob']); ?>">\\
+                                
+                                
+                                    <td><strong>Age</strong>\\
+                                    <td><input type="number" class="form-control" name="father_age" value="<?php echo inputValue($profile['father_age']); ?>">\\
+                                    <td><input type="number" class="form-control" name="mother_age" value="<?php echo inputValue($profile['mother_age']); ?>">\\
+                                
+                                
+                                    <td><strong>Occupation</strong>\\
+                                    <td><input type="text" class="form-control" name="father_occupation" value="<?php echo inputValue($profile['father_occupation']); ?>">\\
+                                    <td><input type="text" class="form-control" name="mother_occupation" value="<?php echo inputValue($profile['mother_occupation']); ?>">\\
+                                
                             </tbody>
-                        </table>
+                          
                         
                         <div style="margin-top: 15px;">
                             <table class="compact-table">
                                 <thead>
                                     <th style="width: 100px;">Spouse</th>
-                                    <td><input type="text" class="form-control" name="spouse_name" value="<?php echo inputValue($profile['spouse_name']); ?>"></td>
+                                    <td><input type="text" class="form-control" name="spouse_name" value="<?php echo inputValue($profile['spouse_name']); ?>">\\
                                     <th>Age</th>
-                                    <td><input type="number" class="form-control" name="spouse_age" value="<?php echo inputValue($profile['spouse_age']); ?>"></td>
+                                    <td><input type="number" class="form-control" name="spouse_age" value="<?php echo inputValue($profile['spouse_age']); ?>">\\
                                     <th>Occupation</th>
-                                    <td><input type="text" class="form-control" name="spouse_occupation" value="<?php echo inputValue($profile['spouse_occupation']); ?>"></td>
+                                    <td><input type="text" class="form-control" name="spouse_occupation" value="<?php echo inputValue($profile['spouse_occupation']); ?>">\\
                                     <th>Address</th>
-                                    <td><input type="text" class="form-control" name="spouse_address" value="<?php echo inputValue($profile['spouse_address']); ?>"></td>
+                                    <td><input type="text" class="form-control" name="spouse_address" value="<?php echo inputValue($profile['spouse_address']); ?>">\\
                                 </thead>
-                            </table>
+                              
                         </div>
                         
                         <div style="margin-top: 15px;">
@@ -1093,27 +1092,27 @@ if ($return_to == 'barangay_profiles' && !empty($barangay_profile)) {
                                     <tbody>
                                         <?php if (count($siblings) > 0): ?>
                                             <?php foreach ($siblings as $sibling): ?>
-                                            <tr>
-                                                <td><input type="text" class="form-control" name="sibling_name[]" value="<?php echo inputValue($sibling['name']); ?>"></td>
-                                                <td><input type="number" class="form-control" name="sibling_age[]" value="<?php echo inputValue($sibling['age']); ?>"></td>
-                                                <td><input type="text" class="form-control" name="sibling_occupation[]" value="<?php echo inputValue($sibling['occupation']); ?>"></td>
-                                                <td><input type="text" class="form-control" name="sibling_status[]" value="<?php echo inputValue($sibling['status']); ?>"></td>
-                                                <td><input type="text" class="form-control" name="sibling_address[]" value="<?php echo inputValue($sibling['address']); ?>"></td>
-                                                <td><button type="button" class="btn btn-danger btn-sm" onclick="removeRow(this)"><i class="fas fa-trash"></i></button></td>
-                                            </tr>
+                                              
+                                                <input type="text" class="form-control" name="sibling_name[]" value="<?php echo inputValue($sibling['name']); ?>">
+                                                <input type="number" class="form-control" name="sibling_age[]" value="<?php echo inputValue($sibling['age']); ?>">
+                                                <input type="text" class="form-control" name="sibling_occupation[]" value="<?php echo inputValue($sibling['occupation']); ?>">
+                                                <input type="text" class="form-control" name="sibling_status[]" value="<?php echo inputValue($sibling['status']); ?>">
+                                                <input type="text" class="form-control" name="sibling_address[]" value="<?php echo inputValue($sibling['address']); ?>">
+                                                <button type="button" class="btn btn-danger btn-sm" onclick="removeRow(this)"><i class="fas fa-trash"></i></button>
+                                              
                                             <?php endforeach; ?>
                                         <?php else: ?>
-                                            <tr>
-                                                <td><input type="text" class="form-control" name="sibling_name[]"></td>
-                                                <td><input type="number" class="form-control" name="sibling_age[]"></td>
-                                                <td><input type="text" class="form-control" name="sibling_occupation[]"></td>
-                                                <td><input type="text" class="form-control" name="sibling_status[]"></td>
-                                                <td><input type="text" class="form-control" name="sibling_address[]"></td>
-                                                <td><button type="button" class="btn btn-danger btn-sm" onclick="removeRow(this)"><i class="fas fa-trash"></i></button></td>
-                                            </tr>
+                                              
+                                                <input type="text" class="form-control" name="sibling_name[]">
+                                                <input type="number" class="form-control" name="sibling_age[]">
+                                                <input type="text" class="form-control" name="sibling_occupation[]">
+                                                <input type="text" class="form-control" name="sibling_status[]">
+                                                <input type="text" class="form-control" name="sibling_address[]">
+                                                <button type="button" class="btn btn-danger btn-sm" onclick="removeRow(this)"><i class="fas fa-trash"></i></button>
+                                              
                                         <?php endif; ?>
                                     </tbody>
-                                </table>
+                                  
                                 <button type="button" class="btn btn-secondary btn-sm" style="margin-top: 10px;" onclick="addSiblingRow()">
                                     <i class="fas fa-plus"></i> Add Sibling
                                 </button>
@@ -1263,9 +1262,6 @@ if ($return_to == 'barangay_profiles' && !empty($barangay_profile)) {
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-save"></i> Save Changes
                     </button>
-                    <a href="view_profile.php?id=<?php echo $id; ?>" class="btn btn-info">
-                        <i class="fas fa-eye"></i> View Profile
-                    </a>
                     <a href="<?php echo $cancel_link; ?>" class="btn btn-secondary">
                         <i class="fas fa-arrow-left"></i> <?php echo $cancel_text; ?>
                     </a>

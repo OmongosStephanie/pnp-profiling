@@ -11,14 +11,16 @@ if (!isset($_SESSION['user_id'])) {
 $database = new Database();
 $db = $database->getConnection();
 
+// Get search query from URL
+$search = isset($_GET['search']) ? trim($_GET['search']) : '';
+
 // Get all barangays and their profile counts
 $barangayQuery = "SELECT 
                    TRIM(SUBSTRING_INDEX(present_address, ',', 1)) as barangay,
                    COUNT(*) as profile_count
                    FROM biographical_profiles 
                    WHERE present_address IS NOT NULL AND present_address != ''
-                   GROUP BY barangay
-                   ORDER BY barangay";
+                   GROUP BY barangay";
 $barangayStmt = $db->query($barangayQuery);
 $barangayStats = $barangayStmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -36,6 +38,19 @@ $all_barangays = [
     'Mantibugao', 'Tankulan (Poblacion)', 'San Miguel', 'Sankanan',
     'Santiago', 'Santo Niño', 'Ticala'
 ];
+
+// Filter barangays based on search
+$filtered_barangays = $all_barangays;
+if (!empty($search)) {
+    $filtered_barangays = array_filter($all_barangays, function($barangay) use ($search) {
+        return stripos($barangay, $search) !== false;
+    });
+    // Reset array keys
+    $filtered_barangays = array_values($filtered_barangays);
+}
+
+$total_profiles = array_sum($barangayCounts);
+$total_barangays_filtered = count($filtered_barangays);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -228,6 +243,8 @@ $all_barangays = [
             justify-content: space-between;
             align-items: center;
             margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 20px;
         }
 
         .page-title {
@@ -257,6 +274,93 @@ $all_barangays = [
             font-size: 14px;
         }
 
+        /* Search Section */
+        .search-section {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border-left: 4px solid #c9a959;
+        }
+
+        .search-form {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .search-input-group {
+            flex: 1;
+            display: flex;
+            gap: 10px;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #1e293b;
+            transition: all 0.2s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #c9a959;
+            box-shadow: 0 0 0 2px rgba(201, 169, 89, 0.1);
+        }
+
+        .btn-search {
+            background: #0a2f4d;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-search:hover {
+            background: #c9a959;
+            color: #0a2f4d;
+        }
+
+        .btn-clear {
+            background: #f1f5f9;
+            color: #64748b;
+            border: 1px solid #e2e8f0;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .btn-clear:hover {
+            background: #e2e8f0;
+            color: #0a2f4d;
+        }
+
+        .search-results-info {
+            margin-top: 12px;
+            padding: 8px 12px;
+            background: #f0f9ff;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #0a2f4d;
+        }
+
         .summary-card {
             background: white;
             border-radius: 16px;
@@ -267,6 +371,8 @@ $all_barangays = [
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
         }
 
         .total-barangays {
@@ -293,7 +399,7 @@ $all_barangays = [
 
         .barangay-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
             gap: 20px;
             margin-bottom: 30px;
         }
@@ -330,6 +436,15 @@ $all_barangays = [
             justify-content: center;
             color: #0a2f4d;
             font-size: 24px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .barangay-icon:hover {
+            background: #0a2f4d;
+            color: #c9a959;
+            transform: scale(1.05);
         }
 
         .barangay-name {
@@ -388,11 +503,26 @@ $all_barangays = [
             text-decoration: none;
             transition: all 0.2s;
             margin-top: 15px;
+            cursor: pointer;
         }
 
         .btn-view-barangay:hover {
             background: #c9a959;
             color: #0a2f4d;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 60px 20px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .no-results i {
+            font-size: 48px;
+            color: #cbd5e1;
+            margin-bottom: 15px;
         }
 
         .footer {
@@ -438,8 +568,6 @@ $all_barangays = [
             <div class="nav-menu">
                 <ul>
                     <li><a href="dashboard.php"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
-                    <li><a href="profile_form.php"><i class="fas fa-plus-circle"></i> New Profile</a></li>
-                    <li><a href="profiles.php"><i class="fas fa-list"></i> View Profiles</a></li>
                     <li><a href="barangays.php" class="active"><i class="fas fa-map-marker-alt"></i> Barangays</a></li>
                     <li><a href="reports.php"><i class="fas fa-chart-bar"></i> Reports</a></li>
                     <?php if ($_SESSION['role'] == 'admin'): ?>
@@ -458,27 +586,55 @@ $all_barangays = [
                 <i class="fas fa-map-marker-alt"></i>
                 <div class="title-text">
                     <h2>Barangays of Manolo Fortich</h2>
-                    <p>Profile distribution across 22 barangays</p>
+                    <p>Click the location icon to view barangay map or click View Profiles to see profiles</p>
                 </div>
             </div>
+        </div>
+
+        <!-- Search Section -->
+        <div class="search-section">
+            <form method="GET" action="" class="search-form">
+                <div class="search-input-group">
+                    <input type="text" 
+                           name="search" 
+                           class="search-input" 
+                           placeholder="Search barangay by name..." 
+                           value="<?php echo htmlspecialchars($search); ?>">
+                    <button type="submit" class="btn-search">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                    <?php if (!empty($search)): ?>
+                    <a href="barangays.php" class="btn-clear">
+                        <i class="fas fa-times"></i> Clear
+                    </a>
+                    <?php endif; ?>
+                </div>
+            </form>
+            
+            <?php if (!empty($search)): ?>
+            <div class="search-results-info">
+                <i class="fas fa-info-circle"></i>
+                Found <strong><?php echo $total_barangays_filtered; ?></strong> barangay(s) matching "<strong><?php echo htmlspecialchars($search); ?></strong>"
+            </div>
+            <?php endif; ?>
         </div>
 
         <!-- Summary Card -->
         <div class="summary-card">
             <div class="total-barangays">
-                <span class="total-number">22</span>
-                <span class="total-label">Total Barangays</span>
+                <span class="total-number"><?php echo $total_barangays_filtered; ?></span>
+                <span class="total-label"><?php echo !empty($search) ? 'Barangays Found' : 'Total Barangays'; ?></span>
             </div>
             <div class="total-label">
-                <strong><?php echo array_sum($barangayCounts); ?></strong> total profiles across all barangays
+                <strong><?php echo $total_profiles; ?></strong> total profiles across all barangays
             </div>
         </div>
 
         <!-- Barangay Grid -->
+        <?php if (count($filtered_barangays) > 0): ?>
         <div class="barangay-grid">
             <?php 
-            $total_profiles = array_sum($barangayCounts);
-            foreach ($all_barangays as $barangay): 
+            foreach ($filtered_barangays as $barangay): 
                 // Get profile count for this barangay
                 $count = 0;
                 foreach ($barangayCounts as $dbBarangay => $profileCount) {
@@ -490,6 +646,12 @@ $all_barangays = [
                 
                 // Calculate percentage
                 $percentage = $total_profiles > 0 ? round(($count / $total_profiles) * 100) : 0;
+                
+                // Highlight search term in barangay name
+                $display_name = $barangay;
+                if (!empty($search)) {
+                    $display_name = preg_replace('/(' . preg_quote($search, '/') . ')/i', '<mark style="background: #fef3c7; padding: 0 2px; border-radius: 3px;">$1</mark>', $barangay);
+                }
             ?>
             <div class="barangay-card">
                 <!-- Profile Count Badge -->
@@ -499,10 +661,11 @@ $all_barangays = [
                 </div>
                 
                 <div class="barangay-header">
-                    <div class="barangay-icon">
+                    <!-- LOCATION ICON - Goes to different page (e.g., barangay map or location info) -->
+                    <a href="barangay_map.php?barangay=<?php echo urlencode($barangay); ?>" class="barangay-icon" title="View Barangay Location">
                         <i class="fas fa-map-marker-alt"></i>
-                    </div>
-                    <h3 class="barangay-name"><?php echo htmlspecialchars($barangay); ?></h3>
+                    </a>
+                    <h3 class="barangay-name"><?php echo $display_name; ?></h3>
                 </div>
                 
                 <!-- Simple progress bar (optional) -->
@@ -512,13 +675,23 @@ $all_barangays = [
                 </div>
                 <?php endif; ?>
                 
-                <!-- CHANGED: Link now points to barangay_profiles.php instead of profiles.php -->
+                <!-- VIEW PROFILES BUTTON - Goes to barangay profiles page -->
                 <a href="barangay_profiles.php?barangay=<?php echo urlencode($barangay); ?>" class="btn-view-barangay">
                     <i class="fas fa-eye"></i> View Profiles
                 </a>
             </div>
             <?php endforeach; ?>
         </div>
+        <?php else: ?>
+        <div class="no-results">
+            <i class="fas fa-search"></i>
+            <h4 style="color: #475569; margin-bottom: 10px;">No Barangays Found</h4>
+            <p style="color: #64748b;">No barangays matching "<strong><?php echo htmlspecialchars($search); ?></strong>" were found.</p>
+            <a href="barangays.php" style="display: inline-block; margin-top: 15px; background: #0a2f4d; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none;">
+                <i class="fas fa-redo"></i> Show All Barangays
+            </a>
+        </div>
+        <?php endif; ?>
     </div>
 
     <!-- Footer -->
