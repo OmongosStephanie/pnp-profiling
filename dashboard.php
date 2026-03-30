@@ -38,7 +38,6 @@ $selectedBarangay = isset($_GET['barangay']) ? $_GET['barangay'] : '';
 
 // ============================================
 // DYNAMIC BARANGAY PIE CHART (Filters by Year and Month)
-// This shows top barangays based on arrests in selected period
 // ============================================
 $barangayQuery = "SELECT 
                     TRIM(SUBSTRING_INDEX(present_address, ',', 1)) as barangay,
@@ -94,8 +93,7 @@ $allBarangayStatsStmt = $db->query($allBarangayStatsQuery);
 $allBarangayStats = $allBarangayStatsStmt->fetchAll(PDO::FETCH_ASSOC);
 
 // ============================================
-// DYNAMIC ARREST BY YEAR/MONTH PIE CHART (Filters by Barangay)
-// This shows arrests by month/year based on selected barangay
+// DYNAMIC ARREST BY YEAR/MONTH PIE CHART
 // ============================================
 $arrestQuery = "SELECT 
                     YEAR(date_time_place_of_arrest) as year,
@@ -166,34 +164,6 @@ $yearQuery = "SELECT DISTINCT
 $yearStmt = $db->query($yearQuery);
 $years = $yearStmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Get all months from database (for months that have data)
-$monthQuery = "SELECT DISTINCT 
-                MONTH(date_time_place_of_arrest) as month, 
-                MONTHNAME(date_time_place_of_arrest) as month_name 
-                FROM biographical_profiles 
-                WHERE date_time_place_of_arrest IS NOT NULL 
-                AND date_time_place_of_arrest != ''
-                AND date_time_place_of_arrest != '0000-00-00 00:00:00'
-                ORDER BY month";
-$monthStmt = $db->query($monthQuery);
-$monthsWithData = $monthStmt->fetchAll(PDO::FETCH_ASSOC);
-
-// Create array of all months (January to December)
-$allMonths = [
-    1 => 'January',
-    2 => 'February',
-    3 => 'March',
-    4 => 'April',
-    5 => 'May',
-    6 => 'June',
-    7 => 'July',
-    8 => 'August',
-    9 => 'September',
-    10 => 'October',
-    11 => 'November',
-    12 => 'December'
-];
-
 // ============================================
 // GET FILTERED PROFILES FOR TABLE
 // ============================================
@@ -234,7 +204,7 @@ $filtered_count = count($filtered_profiles);
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>PNP Biographical Profiling System - Dashboard</title>
     
     <!-- External CSS -->
@@ -244,7 +214,6 @@ $filtered_count = count($filtered_profiles);
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
-        /* All CSS styles remain the same as previous */
         * {
             margin: 0;
             padding: 0;
@@ -258,88 +227,185 @@ $filtered_count = count($filtered_profiles);
             line-height: 1.5;
         }
 
-        .navbar-modern {
+        /* Side Menu Styles */
+        .app-wrapper {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
             background: linear-gradient(135deg, #0a2f4d 0%, #123b5e 100%);
-            padding: 0;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            position: sticky;
-            top: 0;
+            color: white;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            transition: all 0.3s ease;
             z-index: 1000;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
         }
 
-        .navbar-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 0 20px;
+        .sidebar-header {
+            padding: 25px 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
         }
 
-        .navbar-header {
+        .sidebar-logo {
+            width: 70px;
+            height: 70px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            padding: 12px 0;
+            justify-content: center;
+            margin: 0 auto 15px;
+            border: 2px solid #c9a959;
         }
 
-        .logo-area {
+        .sidebar-logo i {
+            font-size: 32px;
+            color: #c9a959;
+        }
+
+        .sidebar-header h3 {
+            font-size: 18px;
+            margin: 0 0 5px;
+            font-weight: 600;
+        }
+
+        .sidebar-header p {
+            font-size: 12px;
+            color: #b0c4de;
+            margin: 0;
+        }
+
+        .user-info-sidebar {
+            background: rgba(255,255,255,0.1);
+            margin: 20px;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .user-avatar-sidebar {
+            width: 60px;
+            height: 60px;
+            background: #c9a959;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+            color: #0a2f4d;
+            font-weight: 600;
+            font-size: 24px;
+        }
+
+        .user-name-sidebar {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .user-rank-sidebar {
+            font-size: 12px;
+            color: #b0c4de;
+        }
+
+        .sidebar-nav {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar-nav li {
+            margin: 5px 15px;
+        }
+
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 15px;
+            color: #e0e0e0;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 10px;
+            transition: all 0.3s;
+        }
+
+        .sidebar-nav a i {
+            width: 20px;
+            font-size: 16px;
+        }
+
+        .sidebar-nav a:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .sidebar-nav a.active {
+            background: #c9a959;
+            color: #0a2f4d;
+        }
+
+        .sidebar-nav a.active i {
+            color: #0a2f4d;
+        }
+
+        /* Main Content */
+        .main-content-wrapper {
+            flex: 1;
+            margin-left: 280px;
+            transition: margin-left 0.3s ease;
+        }
+
+        /* Top Navbar */
+        .top-navbar {
+            background: white;
+            padding: 15px 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+        }
+
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #0a2f4d;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .menu-toggle:hover {
+            background: #f1f5f9;
+        }
+
+        .page-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #0a2f4d;
+            margin: 0;
+        }
+
+        .top-user-info {
             display: flex;
             align-items: center;
             gap: 15px;
         }
 
-        .pnp-logo {
-            width: 50px;
-            height: 50px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 2px solid #c9a959;
-        }
-
-        .pnp-logo i {
-            font-size: 28px;
-            color: #c9a959;
-        }
-
-        .title-area h1 {
-            font-size: 22px;
-            font-weight: 600;
-            color: white;
-            margin: 0;
-            line-height: 1.2;
-        }
-
-        .title-area .subtitle {
-            font-size: 13px;
-            color: #b0c4de;
-            margin: 0;
-        }
-
-        .title-area .station {
-            font-size: 14px;
-            color: #c9a959;
-            font-weight: 500;
-            margin: 2px 0 0;
-        }
-
-        .user-area {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-
-        .user-profile {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            background: rgba(255,255,255,0.1);
-            padding: 8px 16px;
-            border-radius: 40px;
-            border: 1px solid rgba(201, 169, 89, 0.3);
-        }
-
-        .user-avatar {
+        .top-user-avatar {
             width: 40px;
             height: 40px;
             background: #c9a959;
@@ -349,76 +415,22 @@ $filtered_count = count($filtered_profiles);
             justify-content: center;
             color: #0a2f4d;
             font-weight: 600;
-            font-size: 18px;
-        }
-
-        .user-info {
-            line-height: 1.3;
-        }
-
-        .user-name {
-            font-weight: 600;
-            color: white;
-            font-size: 14px;
-        }
-
-        .user-rank {
-            font-size: 12px;
-            color: #b0c4de;
-        }
-
-        .nav-menu {
-            background: rgba(0,0,0,0.2);
-            padding: 0;
-            border-top: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .nav-menu ul {
-            display: flex;
-            list-style: none;
-            margin: 0;
-            padding: 0;
-            gap: 5px;
-        }
-
-        .nav-menu li {
-            margin: 0;
-        }
-
-        .nav-menu a {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 12px 20px;
-            color: #e0e0e0;
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 500;
-            transition: all 0.3s;
-            border-bottom: 3px solid transparent;
-        }
-
-        .nav-menu a i {
             font-size: 16px;
-            width: 20px;
         }
 
-        .nav-menu a:hover {
-            background: rgba(255,255,255,0.1);
-            color: white;
-            border-bottom-color: #c9a959;
+        .top-user-name {
+            font-weight: 500;
+            font-size: 14px;
+            color: #1e293b;
         }
 
-        .nav-menu a.active {
-            background: rgba(255,255,255,0.15);
-            color: white;
-            border-bottom-color: #c9a959;
+        .top-user-rank {
+            font-size: 12px;
+            color: #64748b;
         }
 
         .main-content {
-            max-width: 1400px;
-            margin: 30px auto;
-            padding: 0 20px;
+            padding: 30px;
         }
 
         .welcome-banner {
@@ -431,6 +443,8 @@ $filtered_count = count($filtered_profiles);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
         }
 
         .welcome-text h2 {
@@ -823,6 +837,7 @@ $filtered_count = count($filtered_profiles);
         .btn-icon.view { background: #0a2f4d; }
         .btn-icon.edit { background: #c9a959; }
 
+        /* Mobile Responsive */
         @media (max-width: 1024px) {
             .charts-row {
                 grid-template-columns: 1fr;
@@ -834,288 +849,396 @@ $filtered_count = count($filtered_profiles);
                 overflow-x: auto;
             }
         }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            
+            .main-content-wrapper {
+                margin-left: 0;
+            }
+            
+            .menu-toggle {
+                display: block;
+            }
+            
+            .top-user-info {
+                display: none;
+            }
+            
+            .welcome-text h2 {
+                font-size: 18px;
+            }
+            
+            .welcome-text p {
+                font-size: 12px;
+            }
+            
+            .date-badge {
+                font-size: 11px;
+                padding: 6px 12px;
+            }
+            
+            .stat-card {
+                padding: 15px;
+            }
+            
+            .stat-icon {
+                width: 45px;
+                height: 45px;
+                font-size: 22px;
+            }
+            
+            .stat-details h3 {
+                font-size: 22px;
+            }
+            
+            .stat-details p {
+                font-size: 11px;
+            }
+            
+            .main-content {
+                padding: 20px;
+            }
+        }
     </style>
 </head>
 <body>
-    <!-- Modern Navbar -->
-    <nav class="navbar-modern">
-        <div class="navbar-container">
-            <div class="navbar-header">
-                <div class="logo-area">
-                    <div class="pnp-logo">
-                        <i class="fas fa-shield-alt"></i>
-                    </div>
-                    <div class="title-area">
-                        <h1>PNP Biographical Profiling System</h1>
-                        <div class="station">MANOLO FORTICH POLICE STATION</div>
-                        <div class="subtitle">Bukidnon Police Provincial Office</div>
-                    </div>
-                </div>
-                
-                <div class="user-area">
-                    <div class="user-profile">
-                        <div class="user-avatar">
-                            <?php echo substr($_SESSION['full_name'], 0, 1); ?>
-                        </div>
-                        <div class="user-info">
-                            <div class="user-name"><?php echo $_SESSION['full_name']; ?></div>
-                            <div class="user-rank"><?php echo $_SESSION['rank']; ?> • <?php echo $_SESSION['unit']; ?></div>
-                        </div>
-                    </div>
-                </div>
+<div class="app-wrapper">
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">
+                <i class="fas fa-shield-alt"></i>
             </div>
-            
-            <div class="nav-menu">
-                <ul>
-                    <li><a href="dashboard.php" class="active"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
-                    <li><a href="barangays.php"><i class="fas fa-map-marker-alt"></i> Barangays</a></li>
-                    <li><a href="reports.php"><i class="fas fa-chart-bar"></i> Reports</a></li>
-                    <?php if ($_SESSION['role'] == 'admin'): ?>
-                    <li><a href="users.php"><i class="fas fa-users-cog"></i> Account</a></li>
-                    <?php endif; ?>
-                    <li style="margin-left: auto;"><a href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
-                </ul>
-            </div>
+            <h3>PNP Profiling System</h3>
+            <p>Manolo Fortich Police Station</p>
         </div>
-    </nav>
-
-    <div class="main-content">
-        <!-- Success Message -->
-        <?php if ($success_message): ?>
-            <div class="alert-modern alert-success">
-                <i class="fas fa-check-circle"></i>
-                <span><?php echo $success_message; ?></span>
-                <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" style="background: none; border: none; cursor: pointer;">×</button>
+        
+        <div class="user-info-sidebar">
+            <div class="user-avatar-sidebar">
+                <?php echo substr($_SESSION['full_name'], 0, 1); ?>
             </div>
-        <?php endif; ?>
-
-        <!-- Welcome Banner -->
-        <div class="welcome-banner">
-            <div class="welcome-text">
-                <h2>Welcome back, <?php echo $_SESSION['full_name']; ?>!</h2>
-                <p>Here's what's happening with your biographical profiles today.</p>
-            </div>
-            <div class="date-badge">
-                <i class="fas fa-calendar-alt"></i> <?php echo date('F d, Y'); ?>
-            </div>
+            <div class="user-name-sidebar"><?php echo htmlspecialchars($_SESSION['full_name']); ?></div>
+            <div class="user-rank-sidebar"><?php echo htmlspecialchars($_SESSION['rank']); ?> • <?php echo htmlspecialchars($_SESSION['unit']); ?></div>
         </div>
-        <!-- Quick Filters -->
-        <div class="filter-card">
-            <div class="filter-header">
-                <i class="fas fa-filter"></i>
-                <h4>Quick Filters</h4>
-            </div>
-            <div>
-                <form method="GET" action="" id="filterForm" class="filter-form">
-                    <div class="filter-group">
-                        <label><i class="fas fa-map-marker-alt"></i> Barangay</label>
-                        <select name="barangay" class="filter-select" onchange="this.form.submit()">
-                            <option value="">All Barangays</option>
-                            <?php
-                            $allBarangays = [];
-                            foreach ($allBarangayStats as $stat) {
-                                $allBarangays[] = $stat['barangay'];
-                            }
-                            sort($allBarangays);
-                            foreach ($allBarangays as $barangay): 
-                            ?>
-                                <option value="<?php echo htmlspecialchars($barangay); ?>" 
-                                    <?php echo $selectedBarangay == $barangay ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($barangay); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    
-                    <div class="filter-group">
-                        <label><i class="fas fa-calendar"></i> Arrest Year</label>
-                        <select name="year" class="filter-select" onchange="this.form.submit()">
-                            <option value="">All Years</option>
-                            <?php 
-                            $currentYear = date('Y');
-                            for ($y = 2016; $y <= $currentYear; $y++): 
-                            ?>
-                                <option value="<?php echo $y; ?>" <?php echo $selectedYear == $y ? 'selected' : ''; ?>>
-                                    <?php echo $y; ?>
-                                </option>
-                            <?php endfor; ?>
-                        </select>
-                    </div>
-                    
-                    <div class="filter-group">
-                        <label><i class="fas fa-calendar-alt"></i> Arrest Month</label>
-                        <select name="month" class="filter-select" onchange="this.form.submit()">
-                            <option value="">All Months</option>
-                            <?php 
-                            // Display all months from January to December
-                            for ($m = 1; $m <= 12; $m++): 
-                                $monthName = date('F', mktime(0, 0, 0, $m, 1));
-                                $monthNumber = $m;
-                            ?>
-                                <option value="<?php echo $monthNumber; ?>" <?php echo $selectedMonth == $monthNumber ? 'selected' : ''; ?>>
-                                    <?php echo $monthName; ?>
-                                </option>
-                            <?php endfor; ?>
-                        </select>
-                    </div>
-                    
-                    <div class="filter-group" style="justify-content: flex-end;">
-                        <a href="dashboard.php" class="btn-reset">
-                            <i class="fas fa-redo"></i> Reset
-                        </a>
-                    </div>
-                </form>
-            </div>
-            
-            <!-- Active Filter Display -->
-            <?php if (!empty($selectedBarangay) || !empty($selectedYear) || !empty($selectedMonth)): ?>
-            <div class="active-filter-badge">
-                <i class="fas fa-info-circle"></i>
-                <span>
-                    <strong>Active Filters:</strong>
-                    <?php if (!empty($selectedBarangay)): ?>
-                        <span class="filter-tag"><i class="fas fa-map-marker-alt"></i> <?php echo htmlspecialchars($selectedBarangay); ?></span>
-                    <?php endif; ?>
-                    <?php if (!empty($selectedYear)): ?>
-                        <span class="filter-tag"><i class="fas fa-calendar"></i> Year: <?php echo $selectedYear; ?></span>
-                    <?php endif; ?>
-                    <?php if (!empty($selectedMonth)): ?>
-                        <span class="filter-tag"><i class="fas fa-calendar-alt"></i> Month: <?php echo date('F', mktime(0, 0, 0, $selectedMonth, 1)); ?></span>
-                    <?php endif; ?>
-                    <span class="badge-count" style="background: #0a2f4d; color: white;"><?php echo $filtered_count; ?> records found</span>
-                </span>
-            </div>
+        
+        <ul class="sidebar-nav">
+            <li>
+                <a href="dashboard.php" class="active">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            <li>
+                <a href="barangays.php">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span>Barangays</span>
+                </a>
+            </li>
+            <li>
+                <a href="reports.php">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Reports</span>
+                </a>
+            </li>
+            <?php if ($_SESSION['role'] == 'admin'): ?>
+            <li>
+                <a href="users.php">
+                    <i class="fas fa-users-cog"></i>
+                    <span>Accounts</span>
+                </a>
+            </li>
             <?php endif; ?>
-        </div>
-
-        <!-- Charts Row -->
-        <div class="charts-row">
-            <div class="chart-card">
-                <div class="chart-header">
-                    <div class="chart-header-left">
-                        <i class="fas fa-chart-pie"></i>
-                        <h4>Top 5 Barangays by Arrest Count</h4>
-                    </div>
-                    <?php if (!empty($selectedYear) || !empty($selectedMonth)): ?>
-                        <span class="filter-badge">
-                            <i class="fas fa-filter"></i> 
-                            <?php 
-                            if (!empty($selectedYear)) echo "Year: $selectedYear";
-                            if (!empty($selectedMonth)) echo " Month: " . date('F', mktime(0, 0, 0, $selectedMonth, 1));
-                            ?>
-                        </span>
-                    <?php endif; ?>
-                </div>
-                <div class="chart-container">
-                    <canvas id="barangayPieChart"></canvas>
-                </div>
-                <div class="chart-legend" id="pieChartLegend"></div>
-            </div>
-
-            <div class="chart-card">
-                <div class="chart-header">
-                    <div class="chart-header-left">
-                        <i class="fas fa-chart-line"></i>
-                        <h4>Arrests by Month/Year</h4>
-                    </div>
-                    <?php if (!empty($selectedBarangay)): ?>
-                        <span class="filter-badge">
-                            <i class="fas fa-filter"></i> Barangay: <?php echo htmlspecialchars($selectedBarangay); ?>
-                        </span>
-                    <?php endif; ?>
-                </div>
-                <div class="chart-container">
-                    <canvas id="arrestYearMonthPieChart"></canvas>
-                </div>
-                <div class="chart-legend" id="arrestYearMonthLegend"></div>
-            </div>
-        </div>
-
-        <!-- Filtered Profiles Table -->
-        <?php if (!empty($selectedBarangay) || !empty($selectedYear) || !empty($selectedMonth)): ?>
-        <div class="profiles-table-container">
-            <div class="card-header" style="margin-bottom: 15px;">
-                <h5><i class="fas fa-list"></i> Filtered Profiles</h5>
-                <span class="badge-count"><?php echo $filtered_count; ?> entries</span>
-            </div>
-            
-            <?php if ($filtered_count > 0): ?>
-            <div style="overflow-x: auto;">
-                <table class="profiles-table">
-                    <thead>
-                        <tr>
-                            <th>Full Name</th>
-                            <th>Alias</th>
-                            <th>Age</th>
-                            <th>Barangay</th>
-                            <th>Date of Arrest</th>
-                            <th>Actions</th>
-                         </thead>
-                    <tbody>
-                        <?php foreach ($filtered_profiles as $profile): 
-                            $barangay = '';
-                            if (!empty($profile['present_address'])) {
-                                $addressParts = explode(',', $profile['present_address']);
-                                $barangay = trim($addressParts[0]);
-                            }
-                            
-                            $arrest_date = '';
-                            if (!empty($profile['date_time_place_of_arrest'])) {
-                                $arrest_datetime = strtotime($profile['date_time_place_of_arrest']);
-                                if ($arrest_datetime) {
-                                    $arrest_date = date('M d, Y', $arrest_datetime);
-                                } else {
-                                    $arrest_date = $profile['date_time_place_of_arrest'];
-                                }
-                            }
-                        ?>
-                        <tr>
-                            <td><?php echo htmlspecialchars($profile['full_name']); ?>\\
-                            了一般<?php echo htmlspecialchars($profile['alias'] ?: '—'); ?>\\
-                            了一般<?php echo $profile['age']; ?>\\
-                            了一般
-                                <?php if (!empty($barangay)): ?>
-                                    <span class="filter-tag" style="background: #f1f5f9; color: #0a2f4d;"><?php echo htmlspecialchars($barangay); ?></span>
-                                <?php else: ?>
-                                    <span class="no-arrest">Not specified</span>
-                                <?php endif; ?>
-                              一般
-                            了一般
-                                <?php if (!empty($arrest_date)): ?>
-                                    <span class="arrest-date-badge">
-                                        <i class="fas fa-calendar-check"></i> <?php echo htmlspecialchars($arrest_date); ?>
-                                    </span>
-                                <?php else: ?>
-                                    <span class="no-arrest">No arrest record</span>
-                                <?php endif; ?>
-                              一般
-                            <td class="action-btns">
-                                <a href="view_profile.php?id=<?php echo $profile['id']; ?>" class="btn-icon view" title="View Profile"><i class="fas fa-eye"></i></a>
-                                <a href="edit_profile.php?id=<?php echo $profile['id']; ?>" class="btn-icon edit" title="Edit Profile"><i class="fas fa-edit"></i></a>
-                            一般
-                         ?>
-                        <?php endforeach; ?>
-                    </tbody>
-                66
-            </div>
-            <?php else: ?>
-            <div class="text-center py-5">
-                <i class="fas fa-folder-open fa-3x" style="color: #cbd5e1; margin-bottom: 15px;"></i>
-                <p style="color: #64748b;">No profiles found matching your filters.</p>
-            </div>
-            <?php endif; ?>
-        </div>
-        <?php endif; ?>
+            <li>
+                <a href="logout.php">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </li>
+        </ul>
     </div>
 
-    <footer class="footer">
-        <div class="container">
-            <p>© <?php echo date('Y'); ?> Philippine National Police - Manolo Fortich Police Station. All rights reserved.</p>
-            <p>Department of the Interior and Local Government | Bukidnon Police Provincial Office</p>
+    <!-- Main Content Wrapper -->
+    <div class="main-content-wrapper">
+        <!-- Top Navbar -->
+        <div class="top-navbar">
+            <button class="menu-toggle" id="menuToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h2 class="page-title">Dashboard</h2>
+            <div class="top-user-info">
+                <div>
+                    <div class="top-user-name"><?php echo htmlspecialchars($_SESSION['full_name']); ?></div>
+                    <div class="top-user-rank"><?php echo htmlspecialchars($_SESSION['rank']); ?></div>
+                </div>
+                <div class="top-user-avatar">
+                    <?php echo substr($_SESSION['full_name'], 0, 1); ?>
+                </div>
+            </div>
         </div>
-    </footer>
+
+        <div class="main-content">
+            <!-- Success Message -->
+            <?php if ($success_message): ?>
+                <div class="alert-modern alert-success">
+                    <i class="fas fa-check-circle"></i>
+                    <span><?php echo $success_message; ?></span>
+                    <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" style="background: none; border: none; cursor: pointer;">×</button>
+                </div>
+            <?php endif; ?>
+
+            <!-- Welcome Banner -->
+            <div class="welcome-banner">
+                <div class="welcome-text">
+                    <h2>Welcome back, <?php echo htmlspecialchars($_SESSION['full_name']); ?>!</h2>
+                    <p>Here's what's happening with your biographical profiles today.</p>
+                </div>
+                <div class="date-badge">
+                    <i class="fas fa-calendar-alt"></i> <?php echo date('F d, Y'); ?>
+                </div>
+            </div>
+            
+            <!-- Quick Filters -->
+            <div class="filter-card">
+                <div class="filter-header">
+                    <i class="fas fa-filter"></i>
+                    <h4>Quick Filters</h4>
+                </div>
+                <div>
+                    <form method="GET" action="" id="filterForm" class="filter-form">
+                        <div class="filter-group">
+                            <label><i class="fas fa-map-marker-alt"></i> Barangay</label>
+                            <select name="barangay" class="filter-select" onchange="this.form.submit()">
+                                <option value="">All Barangays</option>
+                                <?php
+                                $allBarangays = [];
+                                foreach ($allBarangayStats as $stat) {
+                                    $allBarangays[] = $stat['barangay'];
+                                }
+                                sort($allBarangays);
+                                foreach ($allBarangays as $barangay): 
+                                ?>
+                                    <option value="<?php echo htmlspecialchars($barangay); ?>" 
+                                        <?php echo $selectedBarangay == $barangay ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars($barangay); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label><i class="fas fa-calendar"></i> Arrest Year</label>
+                            <select name="year" class="filter-select" onchange="this.form.submit()">
+                                <option value="">All Years</option>
+                                <?php 
+                                $currentYear = date('Y');
+                                for ($y = 2016; $y <= $currentYear; $y++): 
+                                ?>
+                                    <option value="<?php echo $y; ?>" <?php echo $selectedYear == $y ? 'selected' : ''; ?>>
+                                        <?php echo $y; ?>
+                                    </option>
+                                <?php endfor; ?>
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label><i class="fas fa-calendar-alt"></i> Arrest Month</label>
+                            <select name="month" class="filter-select" onchange="this.form.submit()">
+                                <option value="">All Months</option>
+                                <?php 
+                                for ($m = 1; $m <= 12; $m++): 
+                                    $monthName = date('F', mktime(0, 0, 0, $m, 1));
+                                ?>
+                                    <option value="<?php echo $m; ?>" <?php echo $selectedMonth == $m ? 'selected' : ''; ?>>
+                                        <?php echo $monthName; ?>
+                                    </option>
+                                <?php endfor; ?>
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group" style="justify-content: flex-end;">
+                            <a href="dashboard.php" class="btn-reset">
+                                <i class="fas fa-redo"></i> Reset
+                            </a>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Active Filter Display -->
+                <?php if (!empty($selectedBarangay) || !empty($selectedYear) || !empty($selectedMonth)): ?>
+                <div class="active-filter-badge">
+                    <i class="fas fa-info-circle"></i>
+                    <span>
+                        <strong>Active Filters:</strong>
+                        <?php if (!empty($selectedBarangay)): ?>
+                            <span class="filter-tag"><i class="fas fa-map-marker-alt"></i> <?php echo htmlspecialchars($selectedBarangay); ?></span>
+                        <?php endif; ?>
+                        <?php if (!empty($selectedYear)): ?>
+                            <span class="filter-tag"><i class="fas fa-calendar"></i> Year: <?php echo $selectedYear; ?></span>
+                        <?php endif; ?>
+                        <?php if (!empty($selectedMonth)): ?>
+                            <span class="filter-tag"><i class="fas fa-calendar-alt"></i> Month: <?php echo date('F', mktime(0, 0, 0, $selectedMonth, 1)); ?></span>
+                        <?php endif; ?>
+                        <span style="background: #0a2f4d; color: white; padding: 3px 8px; border-radius: 20px; font-size: 11px;"><?php echo $filtered_count; ?> records found</span>
+                    </span>
+                </div>
+                <?php endif; ?>
+            </div>
+
+            <!-- Charts Row -->
+            <div class="charts-row">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-header-left">
+                            <i class="fas fa-chart-pie"></i>
+                            <h4>Top 5 Barangays by Arrest Count</h4>
+                        </div>
+                        <?php if (!empty($selectedYear) || !empty($selectedMonth)): ?>
+                            <span class="filter-badge">
+                                <i class="fas fa-filter"></i> 
+                                <?php 
+                                if (!empty($selectedYear)) echo "Year: $selectedYear";
+                                if (!empty($selectedMonth)) echo " Month: " . date('F', mktime(0, 0, 0, $selectedMonth, 1));
+                                ?>
+                            </span>
+                        <?php endif; ?>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="barangayPieChart"></canvas>
+                    </div>
+                    <div class="chart-legend" id="pieChartLegend"></div>
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-header-left">
+                            <i class="fas fa-chart-line"></i>
+                            <h4>Arrests by Month/Year</h4>
+                        </div>
+                        <?php if (!empty($selectedBarangay)): ?>
+                            <span class="filter-badge">
+                                <i class="fas fa-filter"></i> Barangay: <?php echo htmlspecialchars($selectedBarangay); ?>
+                            </span>
+                        <?php endif; ?>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="arrestYearMonthPieChart"></canvas>
+                    </div>
+                    <div class="chart-legend" id="arrestYearMonthLegend"></div>
+                </div>
+            </div>
+
+            <!-- Filtered Profiles Table -->
+            <?php if (!empty($selectedBarangay) || !empty($selectedYear) || !empty($selectedMonth)): ?>
+            <div class="profiles-table-container">
+                <div style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+                    <h5 style="margin: 0;"><i class="fas fa-list"></i> Filtered Profiles</h5>
+                    <span style="background: #0a2f4d; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px;"><?php echo $filtered_count; ?> entries</span>
+                </div>
+                
+                <?php if ($filtered_count > 0): ?>
+                <div style="overflow-x: auto;">
+                    <table class="profiles-table">
+                        <thead>
+                            <tr>
+                                <th>Full Name</th>
+                                <th>Alias</th>
+                                <th>Age</th>
+                                <th>Barangay</th>
+                                <th>Date of Arrest</th>
+                                <th>Actions</th>
+                             </thead>
+                        <tbody>
+                            <?php foreach ($filtered_profiles as $profile): 
+                                $barangay = '';
+                                if (!empty($profile['present_address'])) {
+                                    $addressParts = explode(',', $profile['present_address']);
+                                    $barangay = trim($addressParts[0]);
+                                }
+                                
+                                $arrest_date = '';
+                                if (!empty($profile['date_time_place_of_arrest'])) {
+                                    $arrest_datetime = strtotime($profile['date_time_place_of_arrest']);
+                                    if ($arrest_datetime) {
+                                        $arrest_date = date('M d, Y', $arrest_datetime);
+                                    } else {
+                                        $arrest_date = $profile['date_time_place_of_arrest'];
+                                    }
+                                }
+                            ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($profile['full_name']); ?></td>
+                                <td><?php echo htmlspecialchars($profile['alias'] ?: '—'); ?></td>
+                                <td><?php echo $profile['age']; ?></td>
+                                <td>
+                                    <?php if (!empty($barangay)): ?>
+                                        <span class="filter-tag" style="background: #f1f5f9; color: #0a2f4d;"><?php echo htmlspecialchars($barangay); ?></span>
+                                    <?php else: ?>
+                                        <span style="color: #94a3b8;">Not specified</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <?php if (!empty($arrest_date)): ?>
+                                        <span class="arrest-date-badge">
+                                            <i class="fas fa-calendar-check"></i> <?php echo htmlspecialchars($arrest_date); ?>
+                                        </span>
+                                    <?php else: ?>
+                                        <span style="color: #94a3b8;">No arrest record</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="action-btns">
+                                    <a href="view_profile.php?id=<?php echo $profile['id']; ?>" class="btn-icon view" title="View Profile"><i class="fas fa-eye"></i></a>
+                                    <a href="edit_profile.php?id=<?php echo $profile['id']; ?>" class="btn-icon edit" title="Edit Profile"><i class="fas fa-edit"></i></a>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+                <?php else: ?>
+                <div class="text-center py-5">
+                    <i class="fas fa-folder-open fa-3x" style="color: #cbd5e1; margin-bottom: 15px;"></i>
+                    <p style="color: #64748b;">No profiles found matching your filters.</p>
+                </div>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
+        </div>
+
+        <footer class="footer">
+            <div class="container">
+                <p>© <?php echo date('Y'); ?> Philippine National Police - Manolo Fortich Police Station. All rights reserved.</p>
+                <p>Department of the Interior and Local Government | Bukidnon Police Provincial Office</p>
+            </div>
+        </footer>
+    </div>
+</div>
 
     <script>
+        // Sidebar Toggle for Mobile
+        const menuToggle = document.getElementById('menuToggle');
+        const sidebar = document.getElementById('sidebar');
+
+        menuToggle.addEventListener('click', function() {
+            sidebar.classList.toggle('open');
+        });
+
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', function(event) {
+            const isClickInsideSidebar = sidebar.contains(event.target);
+            const isClickOnToggle = menuToggle.contains(event.target);
+            
+            if (!isClickInsideSidebar && !isClickOnToggle && window.innerWidth <= 768 && sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+            }
+        });
+
         // Barangay data from PHP
         const barangayData = <?php echo json_encode($barangayData); ?>;
         const barangayColors = ['#0a2f4d', '#c9a959', '#28a745', '#dc3545', '#ffc107'];
@@ -1130,7 +1253,7 @@ $filtered_count = count($filtered_profiles);
             yearMonthColors.push(`hsl(${hue}, 70%, 50%)`);
         }
         
-        // Barangay Pie Chart - shows top barangays based on arrests from date_time_place_of_arrest
+        // Barangay Pie Chart
         if (barangayData.length > 0) {
             const pieCtx = document.getElementById('barangayPieChart').getContext('2d');
             new Chart(pieCtx, {
@@ -1180,7 +1303,7 @@ $filtered_count = count($filtered_profiles);
             document.getElementById('pieChartLegend').innerHTML = '<div class="no-data-message">No arrest data available for the selected period</div>';
         }
         
-        // Arrest by Year and Month Pie Chart - shows arrests grouped by month/year from date_time_place_of_arrest
+        // Arrest by Year and Month Pie Chart
         if (arrestYearMonthData.length > 0) {
             const arrestYearMonthCtx = document.getElementById('arrestYearMonthPieChart').getContext('2d');
             new Chart(arrestYearMonthCtx, {

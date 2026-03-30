@@ -28,16 +28,13 @@ $searchQuery = isset($_GET['search']) ? trim($_GET['search']) : '';
 if (isset($_GET['delete_id'])) {
     $delete_id = $_GET['delete_id'];
     
-    // Check if user has permission (admin only)
     if ($_SESSION['role'] == 'admin') {
         try {
-            // First delete siblings
             $delete_siblings = "DELETE FROM siblings WHERE profile_id = :profile_id";
             $stmt_siblings = $db->prepare($delete_siblings);
             $stmt_siblings->bindParam(':profile_id', $delete_id);
             $stmt_siblings->execute();
             
-            // Then delete the profile
             $delete_query = "DELETE FROM biographical_profiles WHERE id = :id";
             $stmt_delete = $db->prepare($delete_query);
             $stmt_delete->bindParam(':id', $delete_id);
@@ -45,7 +42,6 @@ if (isset($_GET['delete_id'])) {
             
             $_SESSION['success_message'] = "Profile deleted successfully!";
             
-            // Redirect to refresh the page
             header("Location: barangay_profiles.php?barangay=" . urlencode($selectedBarangay) . 
                    (!empty($selectedYear) ? "&year=" . $selectedYear : "") .
                    (!empty($selectedMonth) ? "&month=" . $selectedMonth : "") .
@@ -65,24 +61,20 @@ if (isset($_GET['delete_id'])) {
 
 // Handle bulk delete request
 if (isset($_POST['bulk_delete']) && isset($_POST['selected_ids']) && !empty($_POST['selected_ids'])) {
-    // Check if user has permission (admin only)
     if ($_SESSION['role'] == 'admin') {
         $selected_ids = explode(',', $_POST['selected_ids']);
         $deleted_count = 0;
         $error_count = 0;
         
         try {
-            // Start transaction
             $db->beginTransaction();
             
             foreach ($selected_ids as $id) {
-                // Delete siblings first
                 $delete_siblings = "DELETE FROM siblings WHERE profile_id = :profile_id";
                 $stmt_siblings = $db->prepare($delete_siblings);
                 $stmt_siblings->bindParam(':profile_id', $id);
                 $stmt_siblings->execute();
                 
-                // Delete the profile
                 $delete_query = "DELETE FROM biographical_profiles WHERE id = :id";
                 $stmt_delete = $db->prepare($delete_query);
                 $stmt_delete->bindParam(':id', $id);
@@ -94,7 +86,6 @@ if (isset($_POST['bulk_delete']) && isset($_POST['selected_ids']) && !empty($_PO
                 }
             }
             
-            // Commit transaction
             $db->commit();
             
             if ($deleted_count > 0) {
@@ -104,7 +95,6 @@ if (isset($_POST['bulk_delete']) && isset($_POST['selected_ids']) && !empty($_PO
                 $_SESSION['error_message'] = "Failed to delete $error_count profile(s).";
             }
             
-            // Redirect to refresh the page
             header("Location: barangay_profiles.php?barangay=" . urlencode($selectedBarangay) . 
                    (!empty($selectedYear) ? "&year=" . $selectedYear : "") .
                    (!empty($selectedMonth) ? "&month=" . $selectedMonth : "") .
@@ -123,7 +113,7 @@ if (isset($_POST['bulk_delete']) && isset($_POST['selected_ids']) && !empty($_PO
     }
 }
 
-// Get profiles for this specific barangay with filters and search
+// Get profiles for this specific barangay
 $query = "SELECT * FROM biographical_profiles 
           WHERE present_address LIKE :barangay";
 
@@ -175,7 +165,7 @@ $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
 $currentDate = date('F d, Y');
 $generatedBy = $_SESSION['full_name'] . ' - ' . $_SESSION['rank'];
 
-// Create array of all months (January to December)
+// Create array of all months
 $allMonths = [
     1 => 'January',
     2 => 'February',
@@ -191,21 +181,19 @@ $allMonths = [
     12 => 'December'
 ];
 
-// Create array of all years (2016 to 2026)
+// Create array of all years
 $allYears = [];
 for ($y = 2016; $y <= 2026; $y++) {
     $allYears[] = $y;
 }
-// Sort years in descending order
 $allYears = array_reverse($allYears);
 
-// Function to format date_time_place_of_arrest
+// Function to format date
 function formatArrestDate($dateTimePlace) {
     if (empty($dateTimePlace)) {
         return null;
     }
     
-    // Parse the datetime string - assuming format like "2024-03-15 14:30:00"
     $timestamp = strtotime($dateTimePlace);
     if ($timestamp !== false && $timestamp > 0) {
         return [
@@ -221,10 +209,9 @@ function formatArrestDate($dateTimePlace) {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title><?php echo htmlspecialchars($selectedBarangay); ?> - PNP Biographical Profiling System</title>
     
-    <!-- External CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -243,89 +230,181 @@ function formatArrestDate($dateTimePlace) {
             line-height: 1.5;
         }
 
-        /* Modern Navbar */
-        .navbar-modern {
+        .app-wrapper {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 280px;
             background: linear-gradient(135deg, #0a2f4d 0%, #123b5e 100%);
-            padding: 0;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            position: sticky;
-            top: 0;
+            color: white;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            transition: all 0.3s ease;
             z-index: 1000;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
         }
 
-        .navbar-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 0 20px;
+        .sidebar-header {
+            padding: 25px 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
         }
 
-        .navbar-header {
+        .sidebar-logo {
+            width: 70px;
+            height: 70px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            padding: 12px 0;
+            justify-content: center;
+            margin: 0 auto 15px;
+            border: 2px solid #c9a959;
         }
 
-        .logo-area {
+        .sidebar-logo i {
+            font-size: 32px;
+            color: #c9a959;
+        }
+
+        .sidebar-header h3 {
+            font-size: 18px;
+            margin: 0 0 5px;
+            font-weight: 600;
+        }
+
+        .sidebar-header p {
+            font-size: 12px;
+            color: #b0c4de;
+            margin: 0;
+        }
+
+        .user-info-sidebar {
+            background: rgba(255,255,255,0.1);
+            margin: 20px;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .user-avatar-sidebar {
+            width: 60px;
+            height: 60px;
+            background: #c9a959;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+            color: #0a2f4d;
+            font-weight: 600;
+            font-size: 24px;
+        }
+
+        .user-name-sidebar {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .user-rank-sidebar {
+            font-size: 12px;
+            color: #b0c4de;
+        }
+
+        .sidebar-nav {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar-nav li {
+            margin: 5px 15px;
+        }
+
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 15px;
+            color: #e0e0e0;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 10px;
+            transition: all 0.3s;
+        }
+
+        .sidebar-nav a i {
+            width: 20px;
+            font-size: 16px;
+        }
+
+        .sidebar-nav a:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .sidebar-nav a.active {
+            background: #c9a959;
+            color: #0a2f4d;
+        }
+
+        .sidebar-nav a.active i {
+            color: #0a2f4d;
+        }
+
+        .main-content-wrapper {
+            flex: 1;
+            margin-left: 280px;
+            transition: margin-left 0.3s ease;
+        }
+
+        .top-navbar {
+            background: white;
+            padding: 15px 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+        }
+
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #0a2f4d;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .menu-toggle:hover {
+            background: #f1f5f9;
+        }
+
+        .page-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #0a2f4d;
+            margin: 0;
+        }
+
+        .top-user-info {
             display: flex;
             align-items: center;
             gap: 15px;
         }
 
-        .pnp-logo {
-            width: 50px;
-            height: 50px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 2px solid #c9a959;
-        }
-
-        .pnp-logo i {
-            font-size: 28px;
-            color: #c9a959;
-        }
-
-        .title-area h1 {
-            font-size: 22px;
-            font-weight: 600;
-            color: white;
-            margin: 0;
-            line-height: 1.2;
-        }
-
-        .title-area .subtitle {
-            font-size: 13px;
-            color: #b0c4de;
-            margin: 0;
-        }
-
-        .title-area .station {
-            font-size: 14px;
-            color: #c9a959;
-            font-weight: 500;
-            margin: 2px 0 0;
-        }
-
-        .user-area {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-
-        .user-profile {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            background: rgba(255,255,255,0.1);
-            padding: 8px 16px;
-            border-radius: 40px;
-            border: 1px solid rgba(201, 169, 89, 0.3);
-        }
-
-        .user-avatar {
+        .top-user-avatar {
             width: 40px;
             height: 40px;
             background: #c9a959;
@@ -335,81 +414,26 @@ function formatArrestDate($dateTimePlace) {
             justify-content: center;
             color: #0a2f4d;
             font-weight: 600;
-            font-size: 18px;
-        }
-
-        .user-info {
-            line-height: 1.3;
-        }
-
-        .user-name {
-            font-weight: 600;
-            color: white;
-            font-size: 14px;
-        }
-
-        .user-rank {
-            font-size: 12px;
-            color: #b0c4de;
-        }
-
-        /* Navigation Menu */
-        .nav-menu {
-            background: rgba(0,0,0,0.2);
-            padding: 0;
-            border-top: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .nav-menu ul {
-            display: flex;
-            list-style: none;
-            margin: 0;
-            padding: 0;
-            gap: 5px;
-        }
-
-        .nav-menu li {
-            margin: 0;
-        }
-
-        .nav-menu a {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 12px 20px;
-            color: #e0e0e0;
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 500;
-            transition: all 0.3s;
-            border-bottom: 3px solid transparent;
-        }
-
-        .nav-menu a i {
             font-size: 16px;
-            width: 20px;
         }
 
-        .nav-menu a:hover {
-            background: rgba(255,255,255,0.1);
-            color: white;
-            border-bottom-color: #c9a959;
+        .top-user-name {
+            font-weight: 500;
+            font-size: 14px;
+            color: #1e293b;
         }
 
-        .nav-menu a.active {
-            background: rgba(255,255,255,0.15);
-            color: white;
-            border-bottom-color: #c9a959;
+        .top-user-rank {
+            font-size: 12px;
+            color: #64748b;
         }
 
-        /* Main Content */
         .main-content {
             max-width: 1400px;
             margin: 30px auto;
             padding: 0 20px;
         }
 
-        /* Page Header */
         .page-header {
             display: flex;
             justify-content: space-between;
@@ -419,13 +443,13 @@ function formatArrestDate($dateTimePlace) {
             gap: 15px;
         }
 
-        .page-title {
+        .page-title-section {
             display: flex;
             align-items: center;
             gap: 12px;
         }
 
-        .page-title i {
+        .page-title-section i {
             font-size: 28px;
             color: #c9a959;
             background: #0a2f4d;
@@ -451,7 +475,6 @@ function formatArrestDate($dateTimePlace) {
             font-weight: 700;
         }
 
-        /* Action Buttons */
         .btn-back, .btn-delete-header, .btn-add-header {
             background: #64748b;
             color: white;
@@ -488,7 +511,6 @@ function formatArrestDate($dateTimePlace) {
             background: #475569;
         }
 
-        /* Alert Messages */
         .alert-message {
             padding: 12px 16px;
             border-radius: 8px;
@@ -522,7 +544,6 @@ function formatArrestDate($dateTimePlace) {
             }
         }
 
-        /* Bulk Delete Bar */
         .bulk-delete-bar {
             background: white;
             border-radius: 16px;
@@ -594,7 +615,6 @@ function formatArrestDate($dateTimePlace) {
             background: #475569;
         }
 
-        /* Search Section */
         .search-section {
             background: white;
             border-radius: 16px;
@@ -681,7 +701,6 @@ function formatArrestDate($dateTimePlace) {
             color: #0a2f4d;
         }
 
-        /* Barangay Info Card */
         .barangay-info {
             background: white;
             border-radius: 16px;
@@ -729,7 +748,6 @@ function formatArrestDate($dateTimePlace) {
             text-transform: uppercase;
         }
 
-        /* Filter Section */
         .filter-section {
             background: white;
             border-radius: 16px;
@@ -862,7 +880,6 @@ function formatArrestDate($dateTimePlace) {
             margin-left: 10px;
         }
 
-        /* Table Container */
         .table-container {
             background: white;
             border-radius: 16px;
@@ -963,7 +980,6 @@ function formatArrestDate($dateTimePlace) {
             padding: 60px 20px;
         }
 
-        /* Report Footer */
         .report-footer {
             margin-top: 30px;
             padding: 20px;
@@ -994,7 +1010,6 @@ function formatArrestDate($dateTimePlace) {
             color: #64748b;
         }
 
-        /* Highlight search term */
         .highlight {
             background: #fef3c7;
             padding: 0 2px;
@@ -1002,63 +1017,27 @@ function formatArrestDate($dateTimePlace) {
             font-weight: 500;
         }
 
-        /* Tooltip */
-        .btn-icon {
-            position: relative;
-        }
-
-        .btn-icon:hover::after {
-            content: attr(title);
-            position: absolute;
-            bottom: -25px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #1e293b;
-            color: white;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 10px;
-            white-space: nowrap;
-            z-index: 10;
-        }
-
-        /* PRINT STYLES */
-        @media print {
-            .navbar-modern,
-            .nav-menu,
-            .btn-back,
-            .btn-add-header,
-            .btn-delete-header,
-            .filter-section,
-            .search-section,
-            .bulk-delete-bar,
-            .action-btns,
-            .checkbox-column,
-            .footer,
-            .no-print {
-                display: none !important;
-            }
-
-            @page {
-                size: A4;
-                margin: 1.5cm;
-            }
-
-            body {
-                background: white;
-                padding: 0;
-                margin: 0;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-
-            * {
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-        }
-
         @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            
+            .main-content-wrapper {
+                margin-left: 0;
+            }
+            
+            .menu-toggle {
+                display: block;
+            }
+            
+            .top-user-info {
+                display: none;
+            }
+            
             .filter-form {
                 flex-direction: column;
             }
@@ -1100,515 +1079,548 @@ function formatArrestDate($dateTimePlace) {
                 flex-direction: row;
                 justify-content: center;
             }
+            
+            .main-content {
+                padding: 20px;
+            }
+            
+            .title-text h2 {
+                font-size: 20px;
+            }
+            
+            .page-title-section i {
+                font-size: 20px;
+                padding: 8px;
+            }
+        }
+
+        @media print {
+            .sidebar,
+            .top-navbar,
+            .filter-section,
+            .search-section,
+            .bulk-delete-bar,
+            .action-btns,
+            .checkbox-column,
+            .footer,
+            .no-print {
+                display: none !important;
+            }
+
+            .main-content-wrapper {
+                margin-left: 0 !important;
+            }
+
+            @page {
+                size: A4;
+                margin: 1.5cm;
+            }
+
+            body {
+                background: white;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
         }
     </style>
 </head>
 <body>
-    <!-- Modern Navbar -->
-    <nav class="navbar-modern no-print">
-        <div class="navbar-container">
-            <div class="navbar-header">
-                <div class="logo-area">
-                    <div class="pnp-logo">
-                        <i class="fas fa-shield-alt"></i>
-                    </div>
-                    <div class="title-area">
-                        <h1>PNP Biographical Profiling System</h1>
-                        <div class="station">MANOLO FORTICH POLICE STATION</div>
-                        <div class="subtitle">Bukidnon Police Provincial Office</div>
-                    </div>
-                </div>
-                
-                <div class="user-area">
-                    <div class="user-profile">
-                        <div class="user-avatar">
-                            <?php echo substr($_SESSION['full_name'], 0, 1); ?>
-                        </div>
-                        <div class="user-info">
-                            <div class="user-name"><?php echo $_SESSION['full_name']; ?></div>
-                            <div class="user-rank"><?php echo $_SESSION['rank']; ?> • <?php echo $_SESSION['unit']; ?></div>
-                        </div>
-                    </div>
-                </div>
+<div class="app-wrapper">
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">
+                <i class="fas fa-shield-alt"></i>
             </div>
-            
-            <div class="nav-menu">
-                <ul>
-                    <li><a href="dashboard.php"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
-                    <li><a href="profile_form.php"><i class="fas fa-plus-circle"></i> New Profile</a></li>
-                    <li><a href="profiles.php"><i class="fas fa-list"></i> View Profiles</a></li>
-                    <li><a href="barangays.php" class="active"><i class="fas fa-map-marker-alt"></i> Barangays</a></li>
-                    <li><a href="reports.php"><i class="fas fa-chart-bar"></i> Reports</a></li>
-                    <?php if ($_SESSION['role'] == 'admin'): ?>
-                    <li><a href="users.php"><i class="fas fa-users-cog"></i> Account</a></li>
-                    <?php endif; ?>
-                    <li style="margin-left: auto;"><a href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
-                </ul>
-            </div>
+            <h3>PNP Profiling System</h3>
+            <p>Manolo Fortich Police Station</p>
         </div>
-    </nav>
-
-    <div class="main-content">
-        <!-- Page Header -->
-        <div class="page-header">
-            <div class="page-title">
-                <i class="fas fa-map-marker-alt"></i>
-                <div class="title-text">
-                    <h2>Barangay: <span class="barangay-name"><?php echo htmlspecialchars($selectedBarangay); ?></span></h2>
-                    <p>Viewing profiles from this barangay</p>
-                </div>
-            </div>
-            <div style="display: flex; gap: 10px;">
-                <a href="barangays.php" class="btn-back">
-                    <i class="fas fa-arrow-left"></i> Back to Barangays
-                </a>
-                <a href="profile_form.php?barangay=<?php echo urlencode($selectedBarangay); ?>" class="btn-add-header">
-                    <i class="fas fa-plus-circle"></i> Add New Profile
-                </a>
-                <?php if ($_SESSION['role'] == 'admin' && count($profiles) > 0): ?>
-                <button type="button" id="deleteButtonHeader" class="btn-delete-header" onclick="toggleDeleteMode()">
-                    <i class="fas fa-trash-alt"></i> Delete
-                </button>
-                <?php endif; ?>
-            </div>
-        </div>
-
-        <!-- Success/Error Messages -->
-        <?php if (isset($_SESSION['success_message'])): ?>
-            <div class="alert-message alert-success">
-                <i class="fas fa-check-circle"></i>
-                <span><?php echo $_SESSION['success_message']; ?></span>
-                <button type="button" style="margin-left: auto; background: none; border: none; cursor: pointer;" onclick="this.parentElement.remove();">&times;</button>
-            </div>
-            <?php unset($_SESSION['success_message']); ?>
-        <?php endif; ?>
         
-        <?php if (isset($_SESSION['error_message'])): ?>
-            <div class="alert-message alert-danger">
-                <i class="fas fa-exclamation-circle"></i>
-                <span><?php echo $_SESSION['error_message']; ?></span>
-                <button type="button" style="margin-left: auto; background: none; border: none; cursor: pointer;" onclick="this.parentElement.remove();">&times;</button>
+        <div class="user-info-sidebar">
+            <div class="user-avatar-sidebar">
+                <?php echo substr($_SESSION['full_name'], 0, 1); ?>
             </div>
-            <?php unset($_SESSION['error_message']); ?>
-        <?php endif; ?>
+            <div class="user-name-sidebar"><?php echo htmlspecialchars($_SESSION['full_name']); ?></div>
+            <div class="user-rank-sidebar"><?php echo htmlspecialchars($_SESSION['rank']); ?> • <?php echo htmlspecialchars($_SESSION['unit']); ?></div>
+        </div>
+        
+        <ul class="sidebar-nav">
+            <li><a href="dashboard.php"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+            <li><a href="barangays.php"><i class="fas fa-map-marker-alt"></i> Barangays</a></li>
+            <li><a href="reports.php"><i class="fas fa-chart-bar"></i> Reports</a></li>
+            <?php if ($_SESSION['role'] == 'admin'): ?>
+            <li><a href="users.php"><i class="fas fa-users-cog"></i> Accounts</a></li>
+            <?php endif; ?>
+            <li><a href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+        </ul>
+    </div>
 
-        <!-- Bulk Delete Bar -->
-        <div id="bulkDeleteBar" class="bulk-delete-bar">
-            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; width: 100%;">
-                <div class="bulk-delete-info">
-                    <i class="fas fa-trash-alt" style="color: #ef4444; font-size: 20px;"></i>
-                    <span><strong id="selectedCountDisplay">0</strong> profile(s) selected</span>
-                    <span class="selected-count" id="selectedCountBadge">0</span>
+    <!-- Main Content Wrapper -->
+    <div class="main-content-wrapper">
+        <!-- Top Navbar -->
+        <div class="top-navbar">
+            <button class="menu-toggle" id="menuToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h2 class="page-title">Barangay Profiles</h2>
+            <div class="top-user-info">
+                <div>
+                    <div class="top-user-name"><?php echo htmlspecialchars($_SESSION['full_name']); ?></div>
+                    <div class="top-user-rank"><?php echo htmlspecialchars($_SESSION['rank']); ?></div>
+                </div>
+                <div class="top-user-avatar">
+                    <?php echo substr($_SESSION['full_name'], 0, 1); ?>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- Page Header -->
+            <div class="page-header">
+                <div class="page-title-section">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <div class="title-text">
+                        <h2>Barangay: <span class="barangay-name"><?php echo htmlspecialchars($selectedBarangay); ?></span></h2>
+                        <p>Viewing profiles from this barangay</p>
+                    </div>
                 </div>
                 <div style="display: flex; gap: 10px;">
-                    <button type="button" class="btn-cancel-selection" onclick="cancelSelection()">
-                        <i class="fas fa-times"></i> Cancel
-                    </button>
-                    <button type="button" class="btn-bulk-delete" onclick="submitBulkDelete()">
-                        <i class="fas fa-trash-alt"></i> Delete Selected
-                    </button>
-                </div>
-            </div>
-            <form id="bulkDeleteForm" method="POST" action="" style="display: none;">
-                <input type="hidden" name="selected_ids" id="selectedIdsInput" value="">
-                <input type="hidden" name="bulk_delete" value="1">
-            </form>
-        </div>
-
-        <!-- Barangay Info Card -->
-        <div class="barangay-info">
-            <h3><i class="fas fa-map-pin"></i> <?php echo htmlspecialchars($selectedBarangay); ?></h3>
-            <div class="barangay-stats">
-                <div class="stat-item">
-                    <div class="stat-value"><?php echo $stats['total']; ?></div>
-                    <div class="stat-label">Total Profiles</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value"><?php echo $stats['arrested_count']; ?></div>
-                    <div class="stat-label">With Arrest Records</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Search Bar Section -->
-        <div class="search-section no-print">
-            <div class="filter-header">
-                <i class="fas fa-search"></i>
-                <h4>Search Profiles</h4>
-            </div>
-            <form method="GET" action="" class="search-form">
-                <input type="hidden" name="barangay" value="<?php echo htmlspecialchars($selectedBarangay); ?>">
-                <input type="hidden" name="year" value="<?php echo $selectedYear; ?>">
-                <input type="hidden" name="month" value="<?php echo $selectedMonth; ?>">
-                
-                <div class="search-input-group">
-                    <input type="text" 
-                           name="search" 
-                           class="search-input" 
-                           placeholder="Search by name, alias, charge, or group affiliation..." 
-                           value="<?php echo htmlspecialchars($searchQuery); ?>">
-                    <button type="submit" class="btn-search">
-                        <i class="fas fa-search"></i> Search
-                    </button>
-                    <?php if (!empty($searchQuery)): ?>
-                    <a href="barangay_profiles.php?barangay=<?php echo urlencode($selectedBarangay); ?><?php echo !empty($selectedYear) ? '&year=' . $selectedYear : ''; ?><?php echo !empty($selectedMonth) ? '&month=' . $selectedMonth : ''; ?>" class="btn-clear-search">
-                        <i class="fas fa-times"></i> Clear Search
+                    <a href="barangays.php" class="btn-back">
+                        <i class="fas fa-arrow-left"></i> Back to Barangays
                     </a>
-                    <?php endif; ?>
-                </div>
-            </form>
-            
-            <?php if (!empty($searchQuery)): ?>
-            <div class="search-info">
-                <i class="fas fa-info-circle"></i>
-                Showing results for "<strong><?php echo htmlspecialchars($searchQuery); ?></strong>" in <strong><?php echo htmlspecialchars($selectedBarangay); ?></strong>
-                <span style="margin-left: 10px;">Found <strong><?php echo count($profiles); ?></strong> result(s)</span>
-            </div>
-            <?php endif; ?>
-        </div>
-
-        <!-- Filter Section with Year and Month -->
-        <div class="filter-section no-print">
-            <div class="filter-header">
-                <i class="fas fa-filter"></i>
-                <h4>Filter by Date of Arrest</h4>
-            </div>
-            
-            <form method="GET" action="" class="filter-form">
-                <input type="hidden" name="barangay" value="<?php echo htmlspecialchars($selectedBarangay); ?>">
-                <input type="hidden" name="search" value="<?php echo htmlspecialchars($searchQuery); ?>">
-                
-                <div class="filter-group">
-                    <label><i class="fas fa-calendar"></i> Arrest Year</label>
-                    <select name="year" class="filter-select">
-                        <option value="">All Years</option>
-                        <?php foreach ($allYears as $year): ?>
-                            <option value="<?php echo $year; ?>" 
-                                <?php echo $selectedYear == $year ? 'selected' : ''; ?>>
-                                <?php echo $year; ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                
-                <div class="filter-group">
-                    <label><i class="fas fa-calendar-alt"></i> Arrest Month</label>
-                    <select name="month" class="filter-select">
-                        <option value="">All Months</option>
-                        <?php foreach ($allMonths as $monthNum => $monthName): ?>
-                            <option value="<?php echo $monthNum; ?>" 
-                                <?php echo $selectedMonth == $monthNum ? 'selected' : ''; ?>>
-                                <?php echo $monthName; ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                
-                <div class="filter-actions">
-                    <button type="submit" class="btn-filter">
-                        <i class="fas fa-search"></i> Apply Filters
-                    </button>
-                    <a href="barangay_profiles.php?barangay=<?php echo urlencode($selectedBarangay); ?><?php echo !empty($searchQuery) ? '&search=' . urlencode($searchQuery) : ''; ?>" class="btn-reset">
-                        <i class="fas fa-redo"></i> Reset Filters
-                    </a>
-                </div>
-            </form>
-            
-            <!-- Active Filter Display -->
-            <?php if (!empty($selectedYear) || !empty($selectedMonth)): ?>
-            <div class="active-filter-badge">
-                <i class="fas fa-info-circle"></i>
-                <span>
-                    <strong>Active Filters:</strong>
-                    
-                    <?php if (!empty($selectedYear)): ?>
-                        <span class="filter-tag">
-                            <i class="fas fa-calendar"></i> Year: <?php echo $selectedYear; ?>
-                        </span>
-                    <?php endif; ?>
-                    
-                    <?php if (!empty($selectedMonth)): ?>
-                        <span class="filter-tag">
-                            <i class="fas fa-calendar-alt"></i> 
-                            Month: <?php echo $allMonths[$selectedMonth]; ?>
-                        </span>
-                    <?php endif; ?>
-                    
-                    <span style="margin-left: 10px; color: #0a2f4d;">
-                        <i class="fas fa-users"></i> <?php echo count($profiles); ?> records found
-                    </span>
-                </span>
-            </div>
-            <?php endif; ?>
-        </div>
-
-        <!-- Profiles Table -->
-        <div class="table-container">
-            <?php if (count($profiles) > 0): ?>
-                <div class="table-responsive">
-                    <table class="modern-table">
-                        <thead>
-                              <tr>
-                                <?php if ($_SESSION['role'] == 'admin'): ?>
-                                <th class="checkbox-column" id="checkboxHeader" style="display: none;">
-                                    <input type="checkbox" id="selectAll" class="select-all-checkbox" onclick="toggleSelectAll()">
-                                </th>
-                                <?php endif; ?>
-                                <th>Full Name</th>
-                                <th>Alias</th>
-                                <th>Age</th>
-                                <th>Date/Time of Arrest</th>
-                                <th class="no-print">Actions</th>
-                              </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($profiles as $profile): 
-                                $arrestInfo = formatArrestDate($profile['date_time_place_of_arrest'] ?? '');
-                                
-                                // Highlight search term in name and alias
-                                $display_name = $profile['full_name'];
-                                $display_alias = $profile['alias'] ?: '—';
-                                
-                                if (!empty($searchQuery)) {
-                                    $display_name = preg_replace('/(' . preg_quote($searchQuery, '/') . ')/i', '<span class="highlight">$1</span>', $display_name);
-                                    $display_alias = preg_replace('/(' . preg_quote($searchQuery, '/') . ')/i', '<span class="highlight">$1</span>', $display_alias);
-                                }
-                            ?>
-                              <tr>
-                                <?php if ($_SESSION['role'] == 'admin'): ?>
-                                <td class="checkbox-column" style="display: none;">
-                                    <input type="checkbox" class="profile-checkbox select-checkbox" value="<?php echo $profile['id']; ?>" onclick="updateSelectionCount()">
-                                  </td>
-                                <?php endif; ?>
-                                  <td><?php echo $display_name; ?></td>
-                                  <td><?php echo $display_alias; ?></td>
-                                  <td><?php echo $profile['age']; ?></td>
-                                  <td>
-                                    <?php if ($arrestInfo): ?>
-                                        <span class="arrest-date-badge">
-                                            <i class="fas fa-calendar-check"></i> <?php echo $arrestInfo['full']; ?>
-                                        </span>
-                                    <?php else: ?>
-                                        <span class="no-arrest">No arrest record</span>
-                                    <?php endif; ?>
-                                  </td>
-                                <td class="no-print">
-                                    <div class="action-btns">
-                                        <a href="view_profile.php?id=<?php echo $profile['id']; ?>&return_to=barangay&barangay=<?php echo urlencode($selectedBarangay); ?>" 
-                                           class="btn-icon view" 
-                                           title="View Profile">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                        <a href="edit_profile.php?id=<?php echo $profile['id']; ?>&return_to=barangay&barangay=<?php echo urlencode($selectedBarangay); ?>" 
-                                           class="btn-icon edit" 
-                                           title="Edit Profile">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <a href="certificate.php?id=<?php echo $profile['id']; ?>&barangay=<?php echo urlencode($selectedBarangay); ?>" 
-                                           class="btn-icon certificate" 
-                                           title="Generate Certificate of Completion"
-                                           target="_blank">
-                                            <i class="fas fa-certificate"></i>
-                                        </a>
-                                    </div>
-                                  </td>
-                              </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-                
-                <div class="mt-4 text-muted">
-                    <small>
-                        <i class="fas fa-database"></i> 
-                        Showing <strong><?php echo count($profiles); ?></strong> profiles from <strong><?php echo htmlspecialchars($selectedBarangay); ?></strong>
-                        <?php if (!empty($selectedYear) || !empty($selectedMonth) || !empty($searchQuery)): ?>
-                            (filtered by 
-                            <?php if (!empty($searchQuery)): ?>search: "<strong><?php echo htmlspecialchars($searchQuery); ?></strong>"<?php endif; ?>
-                            <?php if (!empty($selectedYear)): ?> year <?php echo $selectedYear; ?><?php endif; ?>
-                            <?php if (!empty($selectedMonth)): ?> month of <?php echo $allMonths[$selectedMonth]; ?><?php endif; ?>)
-                        <?php endif; ?>
-                    </small>
-                </div>
-            <?php else: ?>
-                <div class="empty-state">
-                    <i class="fas fa-folder-open fa-3x" style="color: #cbd5e1; margin-bottom: 15px;"></i>
-                    <h4 style="color: #475569;">No Profiles Found</h4>
-                    <p style="color: #64748b;">
-                        <?php if (!empty($searchQuery)): ?>
-                            No profiles found in <?php echo htmlspecialchars($selectedBarangay); ?> matching "<strong><?php echo htmlspecialchars($searchQuery); ?></strong>".
-                        <?php else: ?>
-                            No profiles found in <?php echo htmlspecialchars($selectedBarangay); ?> matching your filters.
-                        <?php endif; ?>
-                    </p>
-                    <a href="profile_form.php?barangay=<?php echo urlencode($selectedBarangay); ?>" class="btn-add-header" style="display: inline-block; text-decoration: none; margin-top: 10px;">
+                    <a href="profile_form.php?barangay=<?php echo urlencode($selectedBarangay); ?>" class="btn-add-header">
                         <i class="fas fa-plus-circle"></i> Add New Profile
                     </a>
-                    <a href="barangay_profiles.php?barangay=<?php echo urlencode($selectedBarangay); ?>" class="btn-filter" style="display: inline-block; text-decoration: none; margin-top: 10px;">
-                        <i class="fas fa-redo"></i> Clear All Filters
-                    </a>
+                    <?php if ($_SESSION['role'] == 'admin' && count($profiles) > 0): ?>
+                    <button type="button" id="deleteButtonHeader" class="btn-delete-header" onclick="toggleDeleteMode()">
+                        <i class="fas fa-trash-alt"></i> Delete
+                    </button>
+                    <?php endif; ?>
                 </div>
-            <?php endif; ?>
-        </div>
+            </div>
 
-        <!-- Report Footer -->
-        <div class="report-footer">
-            <div>Generated on: <?php echo $currentDate; ?></div>
-            <div>Generated by: <?php echo $generatedBy; ?></div>
-            <div class="signature">
-                <div>_________________________</div>
-                <div>_________________________</div>
+            <!-- Success/Error Messages -->
+            <?php if (isset($_SESSION['success_message'])): ?>
+                <div class="alert-message alert-success">
+                    <i class="fas fa-check-circle"></i>
+                    <span><?php echo $_SESSION['success_message']; ?></span>
+                    <button type="button" style="margin-left: auto; background: none; border: none; cursor: pointer;" onclick="this.parentElement.remove();">&times;</button>
+                </div>
+                <?php unset($_SESSION['success_message']); ?>
+            <?php endif; ?>
+            
+            <?php if (isset($_SESSION['error_message'])): ?>
+                <div class="alert-message alert-danger">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span><?php echo $_SESSION['error_message']; ?></span>
+                    <button type="button" style="margin-left: auto; background: none; border: none; cursor: pointer;" onclick="this.parentElement.remove();">&times;</button>
+                </div>
+                <?php unset($_SESSION['error_message']); ?>
+            <?php endif; ?>
+
+            <!-- Bulk Delete Bar -->
+            <div id="bulkDeleteBar" class="bulk-delete-bar">
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; width: 100%;">
+                    <div class="bulk-delete-info">
+                        <i class="fas fa-trash-alt" style="color: #ef4444; font-size: 20px;"></i>
+                        <span><strong id="selectedCountDisplay">0</strong> profile(s) selected</span>
+                        <span class="selected-count" id="selectedCountBadge">0</span>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button type="button" class="btn-cancel-selection" onclick="cancelSelection()">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                        <button type="button" class="btn-bulk-delete" onclick="submitBulkDelete()">
+                            <i class="fas fa-trash-alt"></i> Delete Selected
+                        </button>
+                    </div>
+                </div>
+                <form id="bulkDeleteForm" method="POST" action="" style="display: none;">
+                    <input type="hidden" name="selected_ids" id="selectedIdsInput" value="">
+                    <input type="hidden" name="bulk_delete" value="1">
+                </form>
+            </div>
+
+            <!-- Barangay Info Card -->
+            <div class="barangay-info">
+                <h3><i class="fas fa-map-pin"></i> <?php echo htmlspecialchars($selectedBarangay); ?></h3>
+                <div class="barangay-stats">
+                    <div class="stat-item">
+                        <div class="stat-value"><?php echo $stats['total']; ?></div>
+                        <div class="stat-label">Total Profiles</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value"><?php echo $stats['arrested_count']; ?></div>
+                        <div class="stat-label">With Arrest Records</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search Bar Section -->
+            <div class="search-section no-print">
+                <div class="filter-header">
+                    <i class="fas fa-search"></i>
+                    <h4>Search Profiles</h4>
+                </div>
+                <form method="GET" action="" class="search-form">
+                    <input type="hidden" name="barangay" value="<?php echo htmlspecialchars($selectedBarangay); ?>">
+                    <input type="hidden" name="year" value="<?php echo $selectedYear; ?>">
+                    <input type="hidden" name="month" value="<?php echo $selectedMonth; ?>">
+                    
+                    <div class="search-input-group">
+                        <input type="text" 
+                               name="search" 
+                               class="search-input" 
+                               placeholder="Search by name, alias, charge, or group affiliation..." 
+                               value="<?php echo htmlspecialchars($searchQuery); ?>">
+                        <button type="submit" class="btn-search">
+                            <i class="fas fa-search"></i> Search
+                        </button>
+                        <?php if (!empty($searchQuery)): ?>
+                        <a href="barangay_profiles.php?barangay=<?php echo urlencode($selectedBarangay); ?><?php echo !empty($selectedYear) ? '&year=' . $selectedYear : ''; ?><?php echo !empty($selectedMonth) ? '&month=' . $selectedMonth : ''; ?>" class="btn-clear-search">
+                            <i class="fas fa-times"></i> Clear Search
+                        </a>
+                        <?php endif; ?>
+                    </div>
+                </form>
+                
+                <?php if (!empty($searchQuery)): ?>
+                <div class="search-info">
+                    <i class="fas fa-info-circle"></i>
+                    Showing results for "<strong><?php echo htmlspecialchars($searchQuery); ?></strong>" in <strong><?php echo htmlspecialchars($selectedBarangay); ?></strong>
+                    <span style="margin-left: 10px;">Found <strong><?php echo count($profiles); ?></strong> result(s)</span>
+                </div>
+                <?php endif; ?>
+            </div>
+
+            <!-- Filter Section -->
+            <div class="filter-section no-print">
+                <div class="filter-header">
+                    <i class="fas fa-filter"></i>
+                    <h4>Filter by Date of Arrest</h4>
+                </div>
+                
+                <form method="GET" action="" class="filter-form">
+                    <input type="hidden" name="barangay" value="<?php echo htmlspecialchars($selectedBarangay); ?>">
+                    <input type="hidden" name="search" value="<?php echo htmlspecialchars($searchQuery); ?>">
+                    
+                    <div class="filter-group">
+                        <label><i class="fas fa-calendar"></i> Arrest Year</label>
+                        <select name="year" class="filter-select">
+                            <option value="">All Years</option>
+                            <?php foreach ($allYears as $year): ?>
+                                <option value="<?php echo $year; ?>" <?php echo $selectedYear == $year ? 'selected' : ''; ?>><?php echo $year; ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label><i class="fas fa-calendar-alt"></i> Arrest Month</label>
+                        <select name="month" class="filter-select">
+                            <option value="">All Months</option>
+                            <?php foreach ($allMonths as $monthNum => $monthName): ?>
+                                <option value="<?php echo $monthNum; ?>" <?php echo $selectedMonth == $monthNum ? 'selected' : ''; ?>><?php echo $monthName; ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-actions">
+                        <button type="submit" class="btn-filter"><i class="fas fa-search"></i> Apply Filters</button>
+                        <a href="barangay_profiles.php?barangay=<?php echo urlencode($selectedBarangay); ?><?php echo !empty($searchQuery) ? '&search=' . urlencode($searchQuery) : ''; ?>" class="btn-reset"><i class="fas fa-redo"></i> Reset Filters</a>
+                    </div>
+                </form>
+                
+                <?php if (!empty($selectedYear) || !empty($selectedMonth)): ?>
+                <div class="active-filter-badge">
+                    <i class="fas fa-info-circle"></i>
+                    <span>
+                        <strong>Active Filters:</strong>
+                        <?php if (!empty($selectedYear)): ?>
+                            <span class="filter-tag"><i class="fas fa-calendar"></i> Year: <?php echo $selectedYear; ?></span>
+                        <?php endif; ?>
+                        <?php if (!empty($selectedMonth)): ?>
+                            <span class="filter-tag"><i class="fas fa-calendar-alt"></i> Month: <?php echo $allMonths[$selectedMonth]; ?></span>
+                        <?php endif; ?>
+                        <span style="margin-left: 10px; color: #0a2f4d;"><i class="fas fa-users"></i> <?php echo count($profiles); ?> records found</span>
+                    </span>
+                </div>
+                <?php endif; ?>
+            </div>
+
+            <!-- Profiles Table -->
+            <div class="table-container">
+                <?php if (count($profiles) > 0): ?>
+                    <div class="table-responsive">
+                        <table class="modern-table">
+                            <thead>
+                                <tr>
+                                    <?php if ($_SESSION['role'] == 'admin'): ?>
+                                    <th class="checkbox-column" id="checkboxHeader" style="display: none;">
+                                        <input type="checkbox" id="selectAll" class="select-all-checkbox" onclick="toggleSelectAll()">
+                                    </th>
+                                    <?php endif; ?>
+                                    <th>Full Name</th>
+                                    <th>Alias</th>
+                                    <th>Age</th>
+                                    <th>Date/Time of Arrest</th>
+                                    <th class="no-print">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($profiles as $profile): 
+                                    $arrestInfo = formatArrestDate($profile['date_time_place_of_arrest'] ?? '');
+                                    
+                                    $display_name = $profile['full_name'];
+                                    $display_alias = $profile['alias'] ?: '—';
+                                    
+                                    if (!empty($searchQuery)) {
+                                        $display_name = preg_replace('/(' . preg_quote($searchQuery, '/') . ')/i', '<span class="highlight">$1</span>', $display_name);
+                                        $display_alias = preg_replace('/(' . preg_quote($searchQuery, '/') . ')/i', '<span class="highlight">$1</span>', $display_alias);
+                                    }
+                                ?>
+                                <tr>
+                                    <?php if ($_SESSION['role'] == 'admin'): ?>
+                                    <td class="checkbox-column" style="display: none;">
+                                        <input type="checkbox" class="profile-checkbox select-checkbox" value="<?php echo $profile['id']; ?>" onclick="updateSelectionCount()">
+                                    </td>
+                                    <?php endif; ?>
+                                    <td><?php echo $display_name; ?></td>
+                                    <td><?php echo $display_alias; ?></td>
+                                    <td><?php echo $profile['age']; ?></td>
+                                    <td>
+                                        <?php if ($arrestInfo): ?>
+                                            <span class="arrest-date-badge">
+                                                <i class="fas fa-calendar-check"></i> <?php echo $arrestInfo['full']; ?>
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="no-arrest">No arrest record</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="no-print">
+                                        <div class="action-btns">
+                                            <a href="view_profile.php?id=<?php echo $profile['id']; ?>&return_to=barangay&barangay=<?php echo urlencode($selectedBarangay); ?>" 
+                                               class="btn-icon view" title="View Profile">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <?php if ($_SESSION['role'] == 'admin'): ?>
+                                            <a href="edit_profile.php?id=<?php echo $profile['id']; ?>&return_to=barangay&barangay=<?php echo urlencode($selectedBarangay); ?>" 
+                                               class="btn-icon edit" title="Edit Profile">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <?php endif; ?>
+                                            <a href="certificate.php?id=<?php echo $profile['id']; ?>&barangay=<?php echo urlencode($selectedBarangay); ?>" 
+                                               class="btn-icon certificate" title="Generate Certificate" target="_blank">
+                                                <i class="fas fa-certificate"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="mt-4 text-muted">
+                        <small>
+                            <i class="fas fa-database"></i> 
+                            Showing <strong><?php echo count($profiles); ?></strong> profiles from <strong><?php echo htmlspecialchars($selectedBarangay); ?></strong>
+                            <?php if (!empty($selectedYear) || !empty($selectedMonth) || !empty($searchQuery)): ?>
+                                (filtered by 
+                                <?php if (!empty($searchQuery)): ?>search: "<strong><?php echo htmlspecialchars($searchQuery); ?></strong>"<?php endif; ?>
+                                <?php if (!empty($selectedYear)): ?> year <?php echo $selectedYear; ?><?php endif; ?>
+                                <?php if (!empty($selectedMonth)): ?> month of <?php echo $allMonths[$selectedMonth]; ?><?php endif; ?>)
+                            <?php endif; ?>
+                        </small>
+                    </div>
+                <?php else: ?>
+                    <div class="empty-state">
+                        <i class="fas fa-folder-open fa-3x" style="color: #cbd5e1; margin-bottom: 15px;"></i>
+                        <h4 style="color: #475569;">No Profiles Found</h4>
+                        <p style="color: #64748b;">
+                            <?php if (!empty($searchQuery)): ?>
+                                No profiles found in <?php echo htmlspecialchars($selectedBarangay); ?> matching "<strong><?php echo htmlspecialchars($searchQuery); ?></strong>".
+                            <?php else: ?>
+                                No profiles found in <?php echo htmlspecialchars($selectedBarangay); ?> matching your filters.
+                            <?php endif; ?>
+                        </p>
+                        <a href="profile_form.php?barangay=<?php echo urlencode($selectedBarangay); ?>" class="btn-add-header" style="display: inline-block; text-decoration: none; margin-top: 10px;">
+                            <i class="fas fa-plus-circle"></i> Add New Profile
+                        </a>
+                        <a href="barangay_profiles.php?barangay=<?php echo urlencode($selectedBarangay); ?>" class="btn-filter" style="display: inline-block; text-decoration: none; margin-top: 10px;">
+                            <i class="fas fa-redo"></i> Clear All Filters
+                        </a>
+                    </div>
+                <?php endif; ?>
+            </div>
+
+            <!-- Report Footer -->
+            <div class="report-footer">
+                <div>Generated on: <?php echo $currentDate; ?></div>
+                <div>Generated by: <?php echo $generatedBy; ?></div>
+                <div class="signature">
+                    <div>_________________________</div>
+                    <div>_________________________</div>
+                </div>
             </div>
         </div>
-    </div>
 
-    <div class="footer no-print">
-        <div class="container">
-            <p>PNP Biographical Profiling System &copy; <?php echo date('Y'); ?> - Manolo Fortich Police Station</p>
-        </div>
-    </div>
+        
 
-    <script>
-        let deleteMode = false;
-        let selectedIds = [];
+<script>
+    // Sidebar Toggle for Mobile
+    const menuToggle = document.getElementById('menuToggle');
+    const sidebar = document.getElementById('sidebar');
+
+    menuToggle.addEventListener('click', function() {
+        sidebar.classList.toggle('open');
+    });
+
+    document.addEventListener('click', function(event) {
+        const isClickInsideSidebar = sidebar.contains(event.target);
+        const isClickOnToggle = menuToggle.contains(event.target);
         
-        // Toggle delete mode
-        function toggleDeleteMode() {
-            deleteMode = !deleteMode;
-            const checkboxes = document.querySelectorAll('.profile-checkbox');
-            const checkboxHeaders = document.querySelectorAll('.checkbox-column');
-            const deleteButton = document.getElementById('deleteButtonHeader');
-            
-            if (deleteMode) {
-                // Show checkboxes
-                checkboxHeaders.forEach(header => header.style.display = 'table-cell');
-                checkboxes.forEach(checkbox => {
-                    checkbox.closest('td').style.display = 'table-cell';
-                });
-                deleteButton.innerHTML = '<i class="fas fa-times"></i> Cancel Delete';
-                deleteButton.style.background = '#64748b';
-            } else {
-                // Hide checkboxes and cancel selection
-                checkboxHeaders.forEach(header => header.style.display = 'none');
-                checkboxes.forEach(checkbox => {
-                    checkbox.closest('td').style.display = 'none';
-                    checkbox.checked = false;
-                });
-                deleteButton.innerHTML = '<i class="fas fa-trash-alt"></i> Delete';
-                deleteButton.style.background = '#ef4444';
-                cancelSelection();
-            }
+        if (!isClickInsideSidebar && !isClickOnToggle && window.innerWidth <= 768 && sidebar.classList.contains('open')) {
+            sidebar.classList.remove('open');
         }
-        
-        // Function to update selection count and display
-        function updateSelectionCount() {
-            const checkboxes = document.querySelectorAll('.profile-checkbox');
-            selectedIds = Array.from(checkboxes)
-                .filter(cb => cb.checked)
-                .map(cb => cb.value);
-            
-            const count = selectedIds.length;
-            const bulkDeleteBar = document.getElementById('bulkDeleteBar');
-            const selectedCountDisplay = document.getElementById('selectedCountDisplay');
-            const selectedCountBadge = document.getElementById('selectedCountBadge');
-            const selectedIdsInput = document.getElementById('selectedIdsInput');
-            
-            if (bulkDeleteBar) {
-                if (count > 0) {
-                    bulkDeleteBar.classList.add('show');
-                    if (selectedCountDisplay) selectedCountDisplay.textContent = count;
-                    if (selectedCountBadge) selectedCountBadge.textContent = count;
-                    if (selectedIdsInput) selectedIdsInput.value = selectedIds.join(',');
-                } else {
-                    bulkDeleteBar.classList.remove('show');
-                    if (selectedIdsInput) selectedIdsInput.value = '';
-                }
-            }
-            
-            // Update select all checkbox
-            const selectAllCheckbox = document.getElementById('selectAll');
-            if (selectAllCheckbox) {
-                const allChecked = checkboxes.length > 0 && Array.from(checkboxes).every(cb => cb.checked);
-                selectAllCheckbox.checked = allChecked;
-            }
+    });
+
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape' && sidebar.classList.contains('open')) {
+            sidebar.classList.remove('open');
         }
+    });
+
+    let deleteMode = false;
+    let selectedIds = [];
+    
+    function toggleDeleteMode() {
+        deleteMode = !deleteMode;
+        const checkboxes = document.querySelectorAll('.profile-checkbox');
+        const checkboxHeaders = document.querySelectorAll('.checkbox-column');
+        const deleteButton = document.getElementById('deleteButtonHeader');
         
-        // Toggle select all
-        function toggleSelectAll() {
-            const selectAllCheckbox = document.getElementById('selectAll');
-            const checkboxes = document.querySelectorAll('.profile-checkbox');
-            
-            if (selectAllCheckbox) {
-                checkboxes.forEach(checkbox => {
-                    checkbox.checked = selectAllCheckbox.checked;
-                });
-            }
-            
-            updateSelectionCount();
-        }
-        
-        // Cancel selection
-        function cancelSelection() {
-            const checkboxes = document.querySelectorAll('.profile-checkbox');
+        if (deleteMode) {
+            checkboxHeaders.forEach(header => header.style.display = 'table-cell');
             checkboxes.forEach(checkbox => {
-                checkbox.checked = false;
+                checkbox.closest('td').style.display = 'table-cell';
             });
-            
-            const selectAllCheckbox = document.getElementById('selectAll');
-            if (selectAllCheckbox) {
-                selectAllCheckbox.checked = false;
-            }
-            
-            updateSelectionCount();
-        }
-        
-        // Submit bulk delete
-        function submitBulkDelete() {
-            if (selectedIds.length === 0) {
-                alert('Please select at least one profile to delete.');
-                return false;
-            }
-            
-            const message = selectedIds.length === 1 
-                ? 'Are you sure you want to delete the selected profile? This action cannot be undone.'
-                : `Are you sure you want to delete ${selectedIds.length} profiles? This action cannot be undone.`;
-            
-            if (confirm(message)) {
-                document.getElementById('bulkDeleteForm').submit();
-            }
-        }
-        
-        // Auto-submit form when dropdown changes
-        document.querySelector('select[name="year"]')?.addEventListener('change', function() {
-            this.form.submit();
-        });
-        
-        document.querySelector('select[name="month"]')?.addEventListener('change', function() {
-            this.form.submit();
-        });
-        
-        // Auto-hide alert messages after 5 seconds
-        setTimeout(function() {
-            const alerts = document.querySelectorAll('.alert-message');
-            alerts.forEach(alert => {
-                alert.style.opacity = '0';
-                alert.style.transition = 'opacity 0.5s';
-                setTimeout(() => alert.remove(), 500);
-            });
-        }, 5000);
-        
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            // Hide checkboxes by default
-            const checkboxes = document.querySelectorAll('.profile-checkbox');
-            const checkboxHeaders = document.querySelectorAll('.checkbox-column');
+            deleteButton.innerHTML = '<i class="fas fa-times"></i> Cancel Delete';
+            deleteButton.style.background = '#64748b';
+        } else {
             checkboxHeaders.forEach(header => header.style.display = 'none');
             checkboxes.forEach(checkbox => {
                 checkbox.closest('td').style.display = 'none';
+                checkbox.checked = false;
             });
-        });
-    </script>
+            deleteButton.innerHTML = '<i class="fas fa-trash-alt"></i> Delete';
+            deleteButton.style.background = '#ef4444';
+            cancelSelection();
+        }
+    }
     
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    function updateSelectionCount() {
+        const checkboxes = document.querySelectorAll('.profile-checkbox');
+        selectedIds = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
+        
+        const count = selectedIds.length;
+        const bulkDeleteBar = document.getElementById('bulkDeleteBar');
+        const selectedCountDisplay = document.getElementById('selectedCountDisplay');
+        const selectedCountBadge = document.getElementById('selectedCountBadge');
+        const selectedIdsInput = document.getElementById('selectedIdsInput');
+        
+        if (bulkDeleteBar) {
+            if (count > 0) {
+                bulkDeleteBar.classList.add('show');
+                if (selectedCountDisplay) selectedCountDisplay.textContent = count;
+                if (selectedCountBadge) selectedCountBadge.textContent = count;
+                if (selectedIdsInput) selectedIdsInput.value = selectedIds.join(',');
+            } else {
+                bulkDeleteBar.classList.remove('show');
+                if (selectedIdsInput) selectedIdsInput.value = '';
+            }
+        }
+        
+        const selectAllCheckbox = document.getElementById('selectAll');
+        if (selectAllCheckbox) {
+            const allChecked = checkboxes.length > 0 && Array.from(checkboxes).every(cb => cb.checked);
+            selectAllCheckbox.checked = allChecked;
+        }
+    }
+    
+    function toggleSelectAll() {
+        const selectAllCheckbox = document.getElementById('selectAll');
+        const checkboxes = document.querySelectorAll('.profile-checkbox');
+        
+        if (selectAllCheckbox) {
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = selectAllCheckbox.checked;
+            });
+        }
+        
+        updateSelectionCount();
+    }
+    
+    function cancelSelection() {
+        const checkboxes = document.querySelectorAll('.profile-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        
+        const selectAllCheckbox = document.getElementById('selectAll');
+        if (selectAllCheckbox) {
+            selectAllCheckbox.checked = false;
+        }
+        
+        updateSelectionCount();
+    }
+    
+    function submitBulkDelete() {
+        if (selectedIds.length === 0) {
+            alert('Please select at least one profile to delete.');
+            return false;
+        }
+        
+        const message = selectedIds.length === 1 
+            ? 'Are you sure you want to delete the selected profile? This action cannot be undone.'
+            : `Are you sure you want to delete ${selectedIds.length} profiles? This action cannot be undone.`;
+        
+        if (confirm(message)) {
+            document.getElementById('bulkDeleteForm').submit();
+        }
+    }
+    
+    document.querySelector('select[name="year"]')?.addEventListener('change', function() {
+        this.form.submit();
+    });
+    
+    document.querySelector('select[name="month"]')?.addEventListener('change', function() {
+        this.form.submit();
+    });
+    
+    setTimeout(function() {
+        const alerts = document.querySelectorAll('.alert-message');
+        alerts.forEach(alert => {
+            alert.style.opacity = '0';
+            alert.style.transition = 'opacity 0.5s';
+            setTimeout(() => alert.remove(), 500);
+        });
+    }, 5000);
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        const checkboxes = document.querySelectorAll('.profile-checkbox');
+        const checkboxHeaders = document.querySelectorAll('.checkbox-column');
+        checkboxHeaders.forEach(header => header.style.display = 'none');
+        checkboxes.forEach(checkbox => {
+            checkbox.closest('td').style.display = 'none';
+        });
+    });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

@@ -14,9 +14,8 @@ $db = $database->getConnection();
 // Get profile ID from URL
 $id = isset($_GET['id']) ? $_GET['id'] : 0;
 
-// Get barangay and return parameters
+// Get barangay parameter - THIS IS THE KEY
 $barangay = isset($_GET['barangay']) ? $_GET['barangay'] : '';
-$return_to = isset($_GET['return_to']) ? $_GET['return_to'] : 'barangay';
 
 if ($id == 0) {
     header("Location: barangays.php");
@@ -43,7 +42,7 @@ $generatedBy = $_SESSION['full_name'] . ' - ' . $_SESSION['rank'];
 // Certificate number
 $certNumber = 'PNP-MFPS-CERT-' . str_pad($id, 5, '0', STR_PAD_LEFT) . '-' . date('Y');
 
-// Determine back link - go back to barangay profile page
+// Determine back link - ALWAYS go back to the barangay page if barangay exists
 if (!empty($barangay)) {
     $back_link = "barangay_profiles.php?barangay=" . urlencode($barangay);
     $back_text = "Back to " . htmlspecialchars($barangay);
@@ -56,7 +55,7 @@ if (!empty($barangay)) {
         $back_text = "Back to " . htmlspecialchars($profileBarangay);
     } else {
         $back_link = "barangays.php";
-        $back_text = "Back";
+        $back_text = "Back to Barangays";
     }
 }
 ?>

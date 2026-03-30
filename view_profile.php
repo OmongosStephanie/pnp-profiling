@@ -122,7 +122,7 @@ $currentDate = date('F d, Y');
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>PNP Biographical Profiling System</title>
     
     <!-- External CSS -->
@@ -484,6 +484,47 @@ $currentDate = date('F d, Y');
             margin-top: 20px;
         }
 
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .personal-data-table th,
+            .personal-data-table td {
+                display: block;
+                width: 100%;
+            }
+            
+            .personal-data-table tr {
+                display: block;
+                margin-bottom: 10px;
+                border: 1px solid #e2e8f0;
+            }
+            
+            .compact-table {
+                font-size: 11px;
+            }
+            
+            .compact-table th,
+            .compact-table td {
+                padding: 4px 6px;
+            }
+            
+            .action-bar {
+                flex-direction: column;
+            }
+            
+            .btn {
+                justify-content: center;
+                width: 100%;
+            }
+            
+            .photo-section {
+                justify-content: center;
+            }
+        }
+
         /* PRINT STYLES */
         @media print {
             @page {
@@ -657,11 +698,11 @@ $currentDate = date('F d, Y');
                 </div>
                 <div class="section-content">
                     <table class="personal-data-table">
-                         <thead>
+                        <thead>
                             <th>FULL NAME</th>
                             <td colspan="3"><?php echo displayValue($profile['full_name']); ?></td>
-                         </thead>
-                         <tbody>
+                        </thead>
+                        <tbody>
                             <tr>
                                 <th>ALIAS</th>
                                 <td colspan="3"><?php echo displayValue($profile['alias']); ?></td>
@@ -796,7 +837,7 @@ $currentDate = date('F d, Y');
                                 <th>UNIT/OFFICE OF ARRESTING OFFICER</th>
                                 <td colspan="3"><?php echo displayValue($profile['arresting_unit']); ?></td>
                             </tr>
-                         </tbody>
+                        </tbody>
                     </table>
                 </div>
             </div>
@@ -996,7 +1037,7 @@ $currentDate = date('F d, Y');
                 </div>
             </div>
 
-            <!-- Action Buttons -->
+            <!-- Action Buttons - Edit Button Removed -->
             <div class="action-bar no-print">
                 <a href="<?php echo $back_link; ?>" class="btn btn-secondary">
                     <i class="fas fa-arrow-left"></i> <?php echo $back_text; ?>
@@ -1004,9 +1045,6 @@ $currentDate = date('F d, Y');
                 <button onclick="window.print()" class="btn btn-print">
                     <i class="fas fa-print"></i> Print Profile
                 </button>
-                <a href="edit_profile.php?id=<?php echo $profile['id']; ?>" class="btn btn-primary">
-                    <i class="fas fa-edit"></i> Edit Profile
-                </a>
             </div>
         </div>
     </div>

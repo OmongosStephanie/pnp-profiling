@@ -56,7 +56,7 @@ $total_barangays_filtered = count($filtered_barangays);
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Barangays - PNP Biographical Profiling System</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -75,88 +75,185 @@ $total_barangays_filtered = count($filtered_barangays);
             line-height: 1.5;
         }
 
-        .navbar-modern {
+        /* Side Menu Styles */
+        .app-wrapper {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
             background: linear-gradient(135deg, #0a2f4d 0%, #123b5e 100%);
-            padding: 0;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            position: sticky;
-            top: 0;
+            color: white;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            transition: all 0.3s ease;
             z-index: 1000;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
         }
 
-        .navbar-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 0 20px;
+        .sidebar-header {
+            padding: 25px 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
         }
 
-        .navbar-header {
+        .sidebar-logo {
+            width: 70px;
+            height: 70px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            padding: 12px 0;
+            justify-content: center;
+            margin: 0 auto 15px;
+            border: 2px solid #c9a959;
         }
 
-        .logo-area {
+        .sidebar-logo i {
+            font-size: 32px;
+            color: #c9a959;
+        }
+
+        .sidebar-header h3 {
+            font-size: 18px;
+            margin: 0 0 5px;
+            font-weight: 600;
+        }
+
+        .sidebar-header p {
+            font-size: 12px;
+            color: #b0c4de;
+            margin: 0;
+        }
+
+        .user-info-sidebar {
+            background: rgba(255,255,255,0.1);
+            margin: 20px;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .user-avatar-sidebar {
+            width: 60px;
+            height: 60px;
+            background: #c9a959;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+            color: #0a2f4d;
+            font-weight: 600;
+            font-size: 24px;
+        }
+
+        .user-name-sidebar {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .user-rank-sidebar {
+            font-size: 12px;
+            color: #b0c4de;
+        }
+
+        .sidebar-nav {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar-nav li {
+            margin: 5px 15px;
+        }
+
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 15px;
+            color: #e0e0e0;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 10px;
+            transition: all 0.3s;
+        }
+
+        .sidebar-nav a i {
+            width: 20px;
+            font-size: 16px;
+        }
+
+        .sidebar-nav a:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .sidebar-nav a.active {
+            background: #c9a959;
+            color: #0a2f4d;
+        }
+
+        .sidebar-nav a.active i {
+            color: #0a2f4d;
+        }
+
+        /* Main Content */
+        .main-content-wrapper {
+            flex: 1;
+            margin-left: 280px;
+            transition: margin-left 0.3s ease;
+        }
+
+        /* Top Navbar */
+        .top-navbar {
+            background: white;
+            padding: 15px 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+        }
+
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #0a2f4d;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .menu-toggle:hover {
+            background: #f1f5f9;
+        }
+
+        .page-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #0a2f4d;
+            margin: 0;
+        }
+
+        .top-user-info {
             display: flex;
             align-items: center;
             gap: 15px;
         }
 
-        .pnp-logo {
-            width: 50px;
-            height: 50px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 2px solid #c9a959;
-        }
-
-        .pnp-logo i {
-            font-size: 28px;
-            color: #c9a959;
-        }
-
-        .title-area h1 {
-            font-size: 22px;
-            font-weight: 600;
-            color: white;
-            margin: 0;
-            line-height: 1.2;
-        }
-
-        .title-area .subtitle {
-            font-size: 13px;
-            color: #b0c4de;
-            margin: 0;
-        }
-
-        .title-area .station {
-            font-size: 14px;
-            color: #c9a959;
-            font-weight: 500;
-            margin: 2px 0 0;
-        }
-
-        .user-area {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-
-        .user-profile {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            background: rgba(255,255,255,0.1);
-            padding: 8px 16px;
-            border-radius: 40px;
-            border: 1px solid rgba(201, 169, 89, 0.3);
-        }
-
-        .user-avatar {
+        .top-user-avatar {
             width: 40px;
             height: 40px;
             background: #c9a959;
@@ -166,76 +263,22 @@ $total_barangays_filtered = count($filtered_barangays);
             justify-content: center;
             color: #0a2f4d;
             font-weight: 600;
-            font-size: 18px;
-        }
-
-        .user-info {
-            line-height: 1.3;
-        }
-
-        .user-name {
-            font-weight: 600;
-            color: white;
-            font-size: 14px;
-        }
-
-        .user-rank {
-            font-size: 12px;
-            color: #b0c4de;
-        }
-
-        .nav-menu {
-            background: rgba(0,0,0,0.2);
-            padding: 0;
-            border-top: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .nav-menu ul {
-            display: flex;
-            list-style: none;
-            margin: 0;
-            padding: 0;
-            gap: 5px;
-        }
-
-        .nav-menu li {
-            margin: 0;
-        }
-
-        .nav-menu a {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 12px 20px;
-            color: #e0e0e0;
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 500;
-            transition: all 0.3s;
-            border-bottom: 3px solid transparent;
-        }
-
-        .nav-menu a i {
             font-size: 16px;
-            width: 20px;
         }
 
-        .nav-menu a:hover {
-            background: rgba(255,255,255,0.1);
-            color: white;
-            border-bottom-color: #c9a959;
+        .top-user-name {
+            font-weight: 500;
+            font-size: 14px;
+            color: #1e293b;
         }
 
-        .nav-menu a.active {
-            background: rgba(255,255,255,0.15);
-            color: white;
-            border-bottom-color: #c9a959;
+        .top-user-rank {
+            font-size: 12px;
+            color: #64748b;
         }
 
         .main-content {
-            max-width: 1400px;
-            margin: 30px auto;
-            padding: 0 20px;
+            padding: 30px;
         }
 
         .page-header {
@@ -247,13 +290,13 @@ $total_barangays_filtered = count($filtered_barangays);
             gap: 20px;
         }
 
-        .page-title {
+        .page-title-section {
             display: flex;
             align-items: center;
             gap: 12px;
         }
 
-        .page-title i {
+        .page-title-section i {
             font-size: 28px;
             color: #c9a959;
             background: #0a2f4d;
@@ -534,172 +577,285 @@ $total_barangays_filtered = count($filtered_barangays);
             font-size: 12px;
             color: #64748b;
         }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            
+            .main-content-wrapper {
+                margin-left: 0;
+            }
+            
+            .menu-toggle {
+                display: block;
+            }
+            
+            .top-user-info {
+                display: none;
+            }
+            
+            .title-text h2 {
+                font-size: 20px;
+            }
+            
+            .title-text p {
+                font-size: 12px;
+            }
+            
+            .page-title-section i {
+                font-size: 20px;
+                padding: 8px;
+            }
+            
+            .main-content {
+                padding: 20px;
+            }
+            
+            .search-form {
+                flex-direction: column;
+            }
+            
+            .search-input-group {
+                flex-direction: column;
+            }
+            
+            .btn-search, .btn-clear {
+                justify-content: center;
+            }
+        }
     </style>
 </head>
 <body>
-    <!-- Modern Navbar -->
-    <nav class="navbar-modern">
-        <div class="navbar-container">
-            <div class="navbar-header">
-                <div class="logo-area">
-                    <div class="pnp-logo">
-                        <i class="fas fa-shield-alt"></i>
-                    </div>
-                    <div class="title-area">
-                        <h1>PNP Biographical Profiling System</h1>
-                        <div class="station">MANOLO FORTICH POLICE STATION</div>
-                        <div class="subtitle">Bukidnon Police Provincial Office</div>
+<div class="app-wrapper">
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <h3>PNP Profiling System</h3>
+            <p>Manolo Fortich Police Station</p>
+        </div>
+        
+        <div class="user-info-sidebar">
+            <div class="user-avatar-sidebar">
+                <?php echo substr($_SESSION['full_name'], 0, 1); ?>
+            </div>
+            <div class="user-name-sidebar"><?php echo htmlspecialchars($_SESSION['full_name']); ?></div>
+            <div class="user-rank-sidebar"><?php echo htmlspecialchars($_SESSION['rank']); ?> • <?php echo htmlspecialchars($_SESSION['unit']); ?></div>
+        </div>
+        
+        <ul class="sidebar-nav">
+            <li>
+                <a href="dashboard.php">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            <li>
+                <a href="barangays.php" class="active">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span>Barangays</span>
+                </a>
+            </li>
+            <li>
+                <a href="reports.php">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Reports</span>
+                </a>
+            </li>
+            <?php if ($_SESSION['role'] == 'admin'): ?>
+            <li>
+                <a href="users.php">
+                    <i class="fas fa-users-cog"></i>
+                    <span>Accounts</span>
+                </a>
+            </li>
+            <?php endif; ?>
+            <li>
+                <a href="logout.php">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Main Content Wrapper -->
+    <div class="main-content-wrapper">
+        <!-- Top Navbar -->
+        <div class="top-navbar">
+            <button class="menu-toggle" id="menuToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h2 class="page-title">Barangays</h2>
+            <div class="top-user-info">
+                <div>
+                    <div class="top-user-name"><?php echo htmlspecialchars($_SESSION['full_name']); ?></div>
+                    <div class="top-user-rank"><?php echo htmlspecialchars($_SESSION['rank']); ?></div>
+                </div>
+                <div class="top-user-avatar">
+                    <?php echo substr($_SESSION['full_name'], 0, 1); ?>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- Page Header -->
+            <div class="page-header">
+                <div class="page-title-section">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <div class="title-text">
+                        <h2>Barangays of Manolo Fortich</h2>
+                        <p>Click the location icon to view barangay map or click View Profiles to see profiles</p>
                     </div>
                 </div>
+            </div>
+
+            <!-- Search Section -->
+            <div class="search-section">
+                <form method="GET" action="" class="search-form">
+                    <div class="search-input-group">
+                        <input type="text" 
+                               name="search" 
+                               class="search-input" 
+                               placeholder="Search barangay by name..." 
+                               value="<?php echo htmlspecialchars($search); ?>">
+                        <button type="submit" class="btn-search">
+                            <i class="fas fa-search"></i> Search
+                        </button>
+                        <?php if (!empty($search)): ?>
+                        <a href="barangays.php" class="btn-clear">
+                            <i class="fas fa-times"></i> Clear
+                        </a>
+                        <?php endif; ?>
+                    </div>
+                </form>
                 
-                <div class="user-area">
-                    <div class="user-profile">
-                        <div class="user-avatar">
-                            <?php echo substr($_SESSION['full_name'], 0, 1); ?>
-                        </div>
-                        <div class="user-info">
-                            <div class="user-name"><?php echo $_SESSION['full_name']; ?></div>
-                            <div class="user-rank"><?php echo $_SESSION['rank']; ?> • <?php echo $_SESSION['unit']; ?></div>
-                        </div>
+                <?php if (!empty($search)): ?>
+                <div class="search-results-info">
+                    <i class="fas fa-info-circle"></i>
+                    Found <strong><?php echo $total_barangays_filtered; ?></strong> barangay(s) matching "<strong><?php echo htmlspecialchars($search); ?></strong>"
+                </div>
+                <?php endif; ?>
+            </div>
+
+            <!-- Summary Card -->
+            <div class="summary-card">
+                <div class="total-barangays">
+                    <span class="total-number"><?php echo $total_barangays_filtered; ?></span>
+                    <span class="total-label"><?php echo !empty($search) ? 'Barangays Found' : 'Total Barangays'; ?></span>
+                </div>
+                <div class="total-label">
+                    <strong><?php echo $total_profiles; ?></strong> total profiles across all barangays
+                </div>
+            </div>
+
+            <!-- Barangay Grid -->
+            <?php if (count($filtered_barangays) > 0): ?>
+            <div class="barangay-grid">
+                <?php 
+                foreach ($filtered_barangays as $barangay): 
+                    // Get profile count for this barangay
+                    $count = 0;
+                    foreach ($barangayCounts as $dbBarangay => $profileCount) {
+                        if (stripos($dbBarangay, $barangay) !== false) {
+                            $count = $profileCount;
+                            break;
+                        }
+                    }
+                    
+                    // Calculate percentage
+                    $percentage = $total_profiles > 0 ? round(($count / $total_profiles) * 100) : 0;
+                    
+                    // Highlight search term in barangay name
+                    $display_name = $barangay;
+                    if (!empty($search)) {
+                        $display_name = preg_replace('/(' . preg_quote($search, '/') . ')/i', '<mark style="background: #fef3c7; padding: 0 2px; border-radius: 3px;">$1</mark>', $barangay);
+                    }
+                ?>
+                <div class="barangay-card">
+                    <!-- Profile Count Badge -->
+                    <div class="profile-count <?php echo $count == 0 ? 'zero' : ''; ?>">
+                        <i class="fas fa-users"></i>
+                        <?php echo $count; ?>
                     </div>
-                </div>
-            </div>
-            
-            <div class="nav-menu">
-                <ul>
-                    <li><a href="dashboard.php"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
-                    <li><a href="barangays.php" class="active"><i class="fas fa-map-marker-alt"></i> Barangays</a></li>
-                    <li><a href="reports.php"><i class="fas fa-chart-bar"></i> Reports</a></li>
-                    <?php if ($_SESSION['role'] == 'admin'): ?>
-                    <li><a href="users.php"><i class="fas fa-users-cog"></i> Account</a></li>
+                    
+                    <div class="barangay-header">
+                        <!-- LOCATION ICON - Goes to barangay map page -->
+                        <a href="barangay_map.php?barangay=<?php echo urlencode($barangay); ?>" class="barangay-icon" title="View Barangay Location">
+                            <i class="fas fa-map-marker-alt"></i>
+                        </a>
+                        <h3 class="barangay-name"><?php echo $display_name; ?></h3>
+                    </div>
+                    
+                    <!-- Simple progress bar (optional) -->
+                    <?php if ($count > 0): ?>
+                    <div style="height: 4px; background: #e2e8f0; border-radius: 2px; margin: 10px 0;">
+                        <div style="width: <?php echo $percentage; ?>%; height: 100%; background: #0a2f4d; border-radius: 2px;"></div>
+                    </div>
                     <?php endif; ?>
-                    <li style="margin-left: auto;"><a href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
-                </ul>
-            </div>
-        </div>
-    </nav>
-
-    <div class="main-content">
-        <!-- Page Header -->
-        <div class="page-header">
-            <div class="page-title">
-                <i class="fas fa-map-marker-alt"></i>
-                <div class="title-text">
-                    <h2>Barangays of Manolo Fortich</h2>
-                    <p>Click the location icon to view barangay map or click View Profiles to see profiles</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Search Section -->
-        <div class="search-section">
-            <form method="GET" action="" class="search-form">
-                <div class="search-input-group">
-                    <input type="text" 
-                           name="search" 
-                           class="search-input" 
-                           placeholder="Search barangay by name..." 
-                           value="<?php echo htmlspecialchars($search); ?>">
-                    <button type="submit" class="btn-search">
-                        <i class="fas fa-search"></i> Search
-                    </button>
-                    <?php if (!empty($search)): ?>
-                    <a href="barangays.php" class="btn-clear">
-                        <i class="fas fa-times"></i> Clear
+                    
+                    <!-- VIEW PROFILES BUTTON - Goes to barangay profiles page -->
+                    <a href="barangay_profiles.php?barangay=<?php echo urlencode($barangay); ?>" class="btn-view-barangay">
+                        <i class="fas fa-eye"></i> View Profiles
                     </a>
-                    <?php endif; ?>
                 </div>
-            </form>
-            
-            <?php if (!empty($search)): ?>
-            <div class="search-results-info">
-                <i class="fas fa-info-circle"></i>
-                Found <strong><?php echo $total_barangays_filtered; ?></strong> barangay(s) matching "<strong><?php echo htmlspecialchars($search); ?></strong>"
+                <?php endforeach; ?>
+            </div>
+            <?php else: ?>
+            <div class="no-results">
+                <i class="fas fa-search"></i>
+                <h4 style="color: #475569; margin-bottom: 10px;">No Barangays Found</h4>
+                <p style="color: #64748b;">No barangays matching "<strong><?php echo htmlspecialchars($search); ?></strong>" were found.</p>
+                <a href="barangays.php" style="display: inline-block; margin-top: 15px; background: #0a2f4d; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none;">
+                    <i class="fas fa-redo"></i> Show All Barangays
+                </a>
             </div>
             <?php endif; ?>
         </div>
 
-        <!-- Summary Card -->
-        <div class="summary-card">
-            <div class="total-barangays">
-                <span class="total-number"><?php echo $total_barangays_filtered; ?></span>
-                <span class="total-label"><?php echo !empty($search) ? 'Barangays Found' : 'Total Barangays'; ?></span>
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="container">
+                <p>© <?php echo date('Y'); ?> Philippine National Police - Manolo Fortich Police Station. All rights reserved.</p>
+                <p>Department of the Interior and Local Government | Bukidnon Police Provincial Office</p>
             </div>
-            <div class="total-label">
-                <strong><?php echo $total_profiles; ?></strong> total profiles across all barangays
-            </div>
-        </div>
-
-        <!-- Barangay Grid -->
-        <?php if (count($filtered_barangays) > 0): ?>
-        <div class="barangay-grid">
-            <?php 
-            foreach ($filtered_barangays as $barangay): 
-                // Get profile count for this barangay
-                $count = 0;
-                foreach ($barangayCounts as $dbBarangay => $profileCount) {
-                    if (stripos($dbBarangay, $barangay) !== false) {
-                        $count = $profileCount;
-                        break;
-                    }
-                }
-                
-                // Calculate percentage
-                $percentage = $total_profiles > 0 ? round(($count / $total_profiles) * 100) : 0;
-                
-                // Highlight search term in barangay name
-                $display_name = $barangay;
-                if (!empty($search)) {
-                    $display_name = preg_replace('/(' . preg_quote($search, '/') . ')/i', '<mark style="background: #fef3c7; padding: 0 2px; border-radius: 3px;">$1</mark>', $barangay);
-                }
-            ?>
-            <div class="barangay-card">
-                <!-- Profile Count Badge -->
-                <div class="profile-count <?php echo $count == 0 ? 'zero' : ''; ?>">
-                    <i class="fas fa-users"></i>
-                    <?php echo $count; ?>
-                </div>
-                
-                <div class="barangay-header">
-                    <!-- LOCATION ICON - Goes to different page (e.g., barangay map or location info) -->
-                    <a href="barangay_map.php?barangay=<?php echo urlencode($barangay); ?>" class="barangay-icon" title="View Barangay Location">
-                        <i class="fas fa-map-marker-alt"></i>
-                    </a>
-                    <h3 class="barangay-name"><?php echo $display_name; ?></h3>
-                </div>
-                
-                <!-- Simple progress bar (optional) -->
-                <?php if ($count > 0): ?>
-                <div style="height: 4px; background: #e2e8f0; border-radius: 2px; margin: 10px 0;">
-                    <div style="width: <?php echo $percentage; ?>%; height: 100%; background: #0a2f4d; border-radius: 2px;"></div>
-                </div>
-                <?php endif; ?>
-                
-                <!-- VIEW PROFILES BUTTON - Goes to barangay profiles page -->
-                <a href="barangay_profiles.php?barangay=<?php echo urlencode($barangay); ?>" class="btn-view-barangay">
-                    <i class="fas fa-eye"></i> View Profiles
-                </a>
-            </div>
-            <?php endforeach; ?>
-        </div>
-        <?php else: ?>
-        <div class="no-results">
-            <i class="fas fa-search"></i>
-            <h4 style="color: #475569; margin-bottom: 10px;">No Barangays Found</h4>
-            <p style="color: #64748b;">No barangays matching "<strong><?php echo htmlspecialchars($search); ?></strong>" were found.</p>
-            <a href="barangays.php" style="display: inline-block; margin-top: 15px; background: #0a2f4d; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none;">
-                <i class="fas fa-redo"></i> Show All Barangays
-            </a>
-        </div>
-        <?php endif; ?>
+        </footer>
     </div>
+</div>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <p>© <?php echo date('Y'); ?> Philippine National Police - Manolo Fortich Police Station. All rights reserved.</p>
-            <p>Department of the Interior and Local Government | Bukidnon Police Provincial Office</p>
-        </div>
-    </footer>
+<script>
+    // Sidebar Toggle for Mobile
+    const menuToggle = document.getElementById('menuToggle');
+    const sidebar = document.getElementById('sidebar');
+
+    menuToggle.addEventListener('click', function() {
+        sidebar.classList.toggle('open');
+    });
+
+    // Close sidebar when clicking outside on mobile
+    document.addEventListener('click', function(event) {
+        const isClickInsideSidebar = sidebar.contains(event.target);
+        const isClickOnToggle = menuToggle.contains(event.target);
+        
+        if (!isClickInsideSidebar && !isClickOnToggle && window.innerWidth <= 768 && sidebar.classList.contains('open')) {
+            sidebar.classList.remove('open');
+        }
+    });
+
+    // Close sidebar on escape key
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape' && sidebar.classList.contains('open')) {
+            sidebar.classList.remove('open');
+        }
+    });
+</script>
 </body>
 </html>

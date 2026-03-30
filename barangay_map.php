@@ -35,7 +35,7 @@ $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Barangay Map - <?php echo htmlspecialchars($barangay); ?></title>
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -61,88 +61,185 @@ $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
             line-height: 1.5;
         }
 
-        .navbar-modern {
+        /* Side Menu Styles */
+        .app-wrapper {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
             background: linear-gradient(135deg, #0a2f4d 0%, #123b5e 100%);
-            padding: 0;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            position: sticky;
-            top: 0;
+            color: white;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            transition: all 0.3s ease;
             z-index: 1000;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
         }
 
-        .navbar-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 0 20px;
+        .sidebar-header {
+            padding: 25px 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
         }
 
-        .navbar-header {
+        .sidebar-logo {
+            width: 70px;
+            height: 70px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            padding: 12px 0;
+            justify-content: center;
+            margin: 0 auto 15px;
+            border: 2px solid #c9a959;
         }
 
-        .logo-area {
+        .sidebar-logo i {
+            font-size: 32px;
+            color: #c9a959;
+        }
+
+        .sidebar-header h3 {
+            font-size: 18px;
+            margin: 0 0 5px;
+            font-weight: 600;
+        }
+
+        .sidebar-header p {
+            font-size: 12px;
+            color: #b0c4de;
+            margin: 0;
+        }
+
+        .user-info-sidebar {
+            background: rgba(255,255,255,0.1);
+            margin: 20px;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .user-avatar-sidebar {
+            width: 60px;
+            height: 60px;
+            background: #c9a959;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+            color: #0a2f4d;
+            font-weight: 600;
+            font-size: 24px;
+        }
+
+        .user-name-sidebar {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .user-rank-sidebar {
+            font-size: 12px;
+            color: #b0c4de;
+        }
+
+        .sidebar-nav {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar-nav li {
+            margin: 5px 15px;
+        }
+
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 15px;
+            color: #e0e0e0;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 10px;
+            transition: all 0.3s;
+        }
+
+        .sidebar-nav a i {
+            width: 20px;
+            font-size: 16px;
+        }
+
+        .sidebar-nav a:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .sidebar-nav a.active {
+            background: #c9a959;
+            color: #0a2f4d;
+        }
+
+        .sidebar-nav a.active i {
+            color: #0a2f4d;
+        }
+
+        /* Main Content */
+        .main-content-wrapper {
+            flex: 1;
+            margin-left: 280px;
+            transition: margin-left 0.3s ease;
+        }
+
+        /* Top Navbar */
+        .top-navbar {
+            background: white;
+            padding: 15px 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+        }
+
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #0a2f4d;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .menu-toggle:hover {
+            background: #f1f5f9;
+        }
+
+        .page-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #0a2f4d;
+            margin: 0;
+        }
+
+        .top-user-info {
             display: flex;
             align-items: center;
             gap: 15px;
         }
 
-        .pnp-logo {
-            width: 50px;
-            height: 50px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 2px solid #c9a959;
-        }
-
-        .pnp-logo i {
-            font-size: 28px;
-            color: #c9a959;
-        }
-
-        .title-area h1 {
-            font-size: 22px;
-            font-weight: 600;
-            color: white;
-            margin: 0;
-            line-height: 1.2;
-        }
-
-        .title-area .subtitle {
-            font-size: 13px;
-            color: #b0c4de;
-            margin: 0;
-        }
-
-        .title-area .station {
-            font-size: 14px;
-            color: #c9a959;
-            font-weight: 500;
-            margin: 2px 0 0;
-        }
-
-        .user-area {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-
-        .user-profile {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            background: rgba(255,255,255,0.1);
-            padding: 8px 16px;
-            border-radius: 40px;
-            border: 1px solid rgba(201, 169, 89, 0.3);
-        }
-
-        .user-avatar {
+        .top-user-avatar {
             width: 40px;
             height: 40px;
             background: #c9a959;
@@ -152,70 +249,18 @@ $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
             justify-content: center;
             color: #0a2f4d;
             font-weight: 600;
-            font-size: 18px;
-        }
-
-        .user-info {
-            line-height: 1.3;
-        }
-
-        .user-name {
-            font-weight: 600;
-            color: white;
-            font-size: 14px;
-        }
-
-        .user-rank {
-            font-size: 12px;
-            color: #b0c4de;
-        }
-
-        .nav-menu {
-            background: rgba(0,0,0,0.2);
-            padding: 0;
-            border-top: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .nav-menu ul {
-            display: flex;
-            list-style: none;
-            margin: 0;
-            padding: 0;
-            gap: 5px;
-        }
-
-        .nav-menu li {
-            margin: 0;
-        }
-
-        .nav-menu a {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 12px 20px;
-            color: #e0e0e0;
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 500;
-            transition: all 0.3s;
-            border-bottom: 3px solid transparent;
-        }
-
-        .nav-menu a i {
             font-size: 16px;
-            width: 20px;
         }
 
-        .nav-menu a:hover {
-            background: rgba(255,255,255,0.1);
-            color: white;
-            border-bottom-color: #c9a959;
+        .top-user-name {
+            font-weight: 500;
+            font-size: 14px;
+            color: #1e293b;
         }
 
-        .nav-menu a.active {
-            background: rgba(255,255,255,0.15);
-            color: white;
-            border-bottom-color: #c9a959;
+        .top-user-rank {
+            font-size: 12px;
+            color: #64748b;
         }
 
         .main-content {
@@ -233,13 +278,13 @@ $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
             gap: 20px;
         }
 
-        .page-title {
+        .page-title-section {
             display: flex;
             align-items: center;
             gap: 12px;
         }
 
-        .page-title i {
+        .page-title-section i {
             font-size: 28px;
             color: #c9a959;
             background: #0a2f4d;
@@ -399,242 +444,320 @@ $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
             cursor: pointer;
         }
 
+        /* Mobile Responsive */
         @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            
+            .main-content-wrapper {
+                margin-left: 0;
+            }
+            
+            .menu-toggle {
+                display: block;
+            }
+            
+            .top-user-info {
+                display: none;
+            }
+            
             #barangayMap {
                 height: 400px;
             }
+            
             .info-bar {
                 flex-direction: column;
                 align-items: flex-start;
             }
+            
             .layer-control {
                 top: 70px;
                 right: 10px;
                 min-width: 150px;
             }
+            
             .search-box {
                 top: 70px;
                 left: 10px;
             }
+            
             .search-box input {
                 width: 180px;
+            }
+            
+            .main-content {
+                padding: 20px;
+            }
+            
+            .title-text h2 {
+                font-size: 20px;
+            }
+            
+            .page-title-section i {
+                font-size: 20px;
+                padding: 8px;
             }
         }
     </style>
 </head>
 <body>
-    <!-- Modern Navbar -->
-    <nav class="navbar-modern">
-        <div class="navbar-container">
-            <div class="navbar-header">
-                <div class="logo-area">
-                    <div class="pnp-logo">
-                        <i class="fas fa-shield-alt"></i>
-                    </div>
-                    <div class="title-area">
-                        <h1>PNP Biographical Profiling System</h1>
-                        <div class="station">MANOLO FORTICH POLICE STATION</div>
-                        <div class="subtitle">Bukidnon Police Provincial Office</div>
-                    </div>
-                </div>
-                
-                <div class="user-area">
-                    <div class="user-profile">
-                        <div class="user-avatar">
-                            <?php echo substr($_SESSION['full_name'], 0, 1); ?>
-                        </div>
-                        <div class="user-info">
-                            <div class="user-name"><?php echo $_SESSION['full_name']; ?></div>
-                            <div class="user-rank"><?php echo $_SESSION['rank']; ?> • <?php echo $_SESSION['unit']; ?></div>
-                        </div>
-                    </div>
-                </div>
+<div class="app-wrapper">
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">
+                <i class="fas fa-shield-alt"></i>
             </div>
-            
-            <div class="nav-menu">
-                <ul>
-                    <li><a href="dashboard.php"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
-                    <li><a href="profile_form.php"><i class="fas fa-plus-circle"></i> New Profile</a></li>
-                    <li><a href="profiles.php"><i class="fas fa-list"></i> View Profiles</a></li>
-                    <li><a href="barangays.php" class="active"><i class="fas fa-map-marker-alt"></i> Barangays</a></li>
-                    <li><a href="reports.php"><i class="fas fa-chart-bar"></i> Reports</a></li>
-                    <?php if ($_SESSION['role'] == 'admin'): ?>
-                    <li><a href="users.php"><i class="fas fa-users-cog"></i> Account</a></li>
-                    <?php endif; ?>
-                    <li style="margin-left: auto;"><a href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
-                </ul>
-            </div>
+            <h3>PNP Profiling System</h3>
+            <p>Manolo Fortich Police Station</p>
         </div>
-    </nav>
-
-    <div class="main-content">
-        <!-- Page Header -->
-        <div class="page-header">
-            <div class="page-title">
-                <i class="fas fa-map-marker-alt"></i>
-                <div class="title-text">
-                    <h2><?php echo htmlspecialchars($barangay); ?></h2>
-                    <p>Interactive Map - Search and explore the area</p>
-                </div>
+        
+        <div class="user-info-sidebar">
+            <div class="user-avatar-sidebar">
+                <?php echo substr($_SESSION['full_name'], 0, 1); ?>
             </div>
-            <a href="barangays.php" class="btn-back">
-                <i class="fas fa-arrow-left"></i> Back to Barangays
-            </a>
+            <div class="user-name-sidebar"><?php echo htmlspecialchars($_SESSION['full_name']); ?></div>
+            <div class="user-rank-sidebar"><?php echo htmlspecialchars($_SESSION['rank']); ?> • <?php echo htmlspecialchars($_SESSION['unit']); ?></div>
         </div>
-
-        <!-- Map Container -->
-        <div class="map-container">
-            <div id="barangayMap"></div>
-            <div class="info-bar">
-                <div class="info-item">
+        
+        <ul class="sidebar-nav">
+            <li>
+                <a href="dashboard.php">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            <li>
+                <a href="barangays.php" class="active">
                     <i class="fas fa-map-marker-alt"></i>
-                    <span><strong><?php echo htmlspecialchars($barangay); ?></strong>, Manolo Fortich, Bukidnon</span>
-                </div>
-                <div class="info-item">
-                    <i class="fas fa-users"></i>
-                    <span>Total Profiles: <strong><?php echo $stats['total']; ?></strong></span>
-                </div>
-                <div class="info-item">
-                    <i class="fas fa-gavel"></i>
-                    <span>Arrest Records: <strong><?php echo $stats['arrested_count']; ?></strong></span>
-                </div>
-                <div class="info-item">
-                    <i class="fas fa-info-circle"></i>
-                    <span>Use search to find specific locations</span>
-                </div>
-            </div>
-        </div>
+                    <span>Barangays</span>
+                </a>
+            </li>
+            <li>
+                <a href="reports.php">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Reports</span>
+                </a>
+            </li>
+            <?php if ($_SESSION['role'] == 'admin'): ?>
+            <li>
+                <a href="users.php">
+                    <i class="fas fa-users-cog"></i>
+                    <span>Accounts</span>
+                </a>
+            </li>
+            <?php endif; ?>
+            <li>
+                <a href="logout.php">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </li>
+        </ul>
     </div>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <p>© <?php echo date('Y'); ?> Philippine National Police - Manolo Fortich Police Station. All rights reserved.</p>
+    <!-- Main Content Wrapper -->
+    <div class="main-content-wrapper">
+        <!-- Top Navbar -->
+        <div class="top-navbar">
+            <button class="menu-toggle" id="menuToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h2 class="page-title">Barangay Map</h2>
+            <div class="top-user-info">
+                <div>
+                    <div class="top-user-name"><?php echo htmlspecialchars($_SESSION['full_name']); ?></div>
+                    <div class="top-user-rank"><?php echo htmlspecialchars($_SESSION['rank']); ?></div>
+                </div>
+                <div class="top-user-avatar">
+                    <?php echo substr($_SESSION['full_name'], 0, 1); ?>
+                </div>
+            </div>
         </div>
-    </footer>
 
-    <script>
-        // Get the selected barangay
-        let barangayName = '<?php echo addslashes($barangay); ?>';
+        <div class="main-content">
+            <!-- Page Header -->
+            <div class="page-header">
+                <div class="page-title-section">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <div class="title-text">
+                        <h2><?php echo htmlspecialchars($barangay); ?></h2>
+                        <p>Interactive Map - Search and explore the area</p>
+                    </div>
+                </div>
+                <a href="barangays.php" class="btn-back">
+                    <i class="fas fa-arrow-left"></i> Back to Barangays
+                </a>
+            </div>
+
+            <!-- Map Container -->
+            <div class="map-container">
+                <div id="barangayMap"></div>
+                <div class="info-bar">
+                    <div class="info-item">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span><strong><?php echo htmlspecialchars($barangay); ?></strong>, Manolo Fortich, Bukidnon</span>
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-users"></i>
+                        <span>Total Profiles: <strong><?php echo $stats['total']; ?></strong></span>
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-gavel"></i>
+                        <span>Arrest Records: <strong><?php echo $stats['arrested_count']; ?></strong></span>
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-info-circle"></i>
+                        <span>Use search to find specific locations</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="container">
+                <p>© <?php echo date('Y'); ?> Philippine National Police - Manolo Fortich Police Station. All rights reserved.</p>
+                <p>Department of the Interior and Local Government | Bukidnon Police Provincial Office</p>
+            </div>
+        </footer>
+    </div>
+</div>
+
+<script>
+    // Sidebar Toggle for Mobile
+    const menuToggle = document.getElementById('menuToggle');
+    const sidebar = document.getElementById('sidebar');
+
+    menuToggle.addEventListener('click', function() {
+        sidebar.classList.toggle('open');
+    });
+
+    // Close sidebar when clicking outside on mobile
+    document.addEventListener('click', function(event) {
+        const isClickInsideSidebar = sidebar.contains(event.target);
+        const isClickOnToggle = menuToggle.contains(event.target);
         
-        // Coordinates for each barangay (approximate center)
-        const barangayCenters = {
-            'Tankulan (Poblacion)': [8.36637900, 124.86443200],
-            'San Miguel': [8.38904800, 124.83593600],
-            'Lingion': [8.40319400, 124.88830300],
-            'Mantibugao': [8.45850000, 124.82408400],
-            'Alae': [8.42239400, 124.81303000],
-            'Damilag': [8.35332400, 124.81329400],
-            'Kalugmanan': [8.27723500, 124.86140300],
-            'Lindaban': [8.28964300, 124.84700500],
-            'Dalirig': [8.37639600, 124.90117600],
-            'Dicklum': [8.37223500, 124.84915600],
-            'Lunocan': [8.43158700, 124.84030900],
-            'Maluko': [8.37517300, 124.95558900],
-            'Sankanan': [8.31593200, 124.85791300],
-            'Santiago': [8.43630800, 124.99578200],
-            'Santo Niño': [8.42842000, 124.86404200],
-            'Ticala': [8.34018700, 124.89189100],
-            'Agusan Canyon': [8.33375600, 124.81538500],
-            'Dahilayan': [8.21923800, 124.85209300],
-            'Guilang-guilang': [8.45752100, 125.04109100],
-            'Mambatangan': [8.46782200, 124.79061900],
-            'Mampayag': [8.4495, 124.8413],
-            'Minsuro': [8.51025300, 124.83125900]
-        };
+        if (!isClickInsideSidebar && !isClickOnToggle && window.innerWidth <= 768 && sidebar.classList.contains('open')) {
+            sidebar.classList.remove('open');
+        }
+    });
 
-        // Get coordinates for the selected barangay
-        let coordinates = barangayCenters[barangayName] || [8.3699, 124.8647];
+    // Close sidebar on escape key
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape' && sidebar.classList.contains('open')) {
+            sidebar.classList.remove('open');
+        }
+    });
 
-        // Define map layers
-        const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors',
-            maxZoom: 19
-        });
+    // Get the selected barangay
+    let barangayName = '<?php echo addslashes($barangay); ?>';
+    
+    // Coordinates for each barangay (approximate center)
+    const barangayCenters = {
+        'Tankulan (Poblacion)': [8.36637900, 124.86443200],
+        'San Miguel': [8.38904800, 124.83593600],
+        'Lingion': [8.40319400, 124.88830300],
+        'Mantibugao': [8.45850000, 124.82408400],
+        'Alae': [8.42239400, 124.81303000],
+        'Damilag': [8.35332400, 124.81329400],
+        'Kalugmanan': [8.27723500, 124.86140300],
+        'Lindaban': [8.28964300, 124.84700500],
+        'Dalirig': [8.37639600, 124.90117600],
+        'Dicklum': [8.37223500, 124.84915600],
+        'Lunocan': [8.43158700, 124.84030900],
+        'Maluko': [8.37517300, 124.95558900],
+        'Sankanan': [8.31593200, 124.85791300],
+        'Santiago': [8.43630800, 124.99578200],
+        'Santo Niño': [8.42842000, 124.86404200],
+        'Ticala': [8.34018700, 124.89189100],
+        'Agusan Canyon': [8.33375600, 124.81538500],
+        'Dahilayan': [8.21923800, 124.85209300],
+        'Guilang-guilang': [8.45752100, 125.04109100],
+        'Mambatangan': [8.46782200, 124.79061900],
+        'Mampayag': [8.4495, 124.8413],
+        'Minsuro': [8.51025300, 124.83125900]
+    };
 
-        const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
-            maxZoom: 19
-        });
+    // Get coordinates for the selected barangay
+    let coordinates = barangayCenters[barangayName] || [8.3699, 124.8647];
 
-        const detailedStreetLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; OpenStreetMap &copy; CARTO',
-            maxZoom: 19
-        });
+    // Define map layers
+    const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19
+    });
 
-        const topoLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
-            attribution: 'Map data: &copy; OpenStreetMap contributors, SRTM | Map style: &copy; OpenTopoMap (CC-BY-SA)',
-            maxZoom: 17
-        });
+    const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+        maxZoom: 19
+    });
 
-        // Initialize the map
-        const map = L.map('barangayMap').setView(coordinates, 14);
-        let currentLayer = streetLayer;
-        currentLayer.addTo(map);
+    const detailedStreetLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap &copy; CARTO',
+        maxZoom: 19
+    });
 
-        // Try to fetch barangay boundary from OpenStreetMap
-        let barangayPolygon = null;
-        const searchQuery = `${barangayName}, Manolo Fortich, Bukidnon, Philippines`;
-        
-        fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&format=json&polygon_geojson=1&limit=1`)
-            .then(response => response.json())
-            .then(data => {
-                if (data && data.length > 0 && data[0].geojson) {
-                    const geojson = data[0].geojson;
-                    if (geojson.coordinates) {
-                        let coords = geojson.coordinates;
-                        if (geojson.type === 'Polygon') {
-                            coords = coords[0].map(coord => [coord[1], coord[0]]);
-                        } else if (geojson.type === 'MultiPolygon') {
-                            coords = coords[0][0].map(coord => [coord[1], coord[0]]);
-                        }
-                        
-                        barangayPolygon = L.polygon(coords, {
-                            color: '#c9a959',
-                            fillColor: '#0a2f4d',
-                            fillOpacity: 0.25,
-                            weight: 3,
-                            opacity: 0.8
-                        }).addTo(map);
-                        
-                        map.fitBounds(barangayPolygon.getBounds());
-                        
-                        const center = barangayPolygon.getBounds().getCenter();
-                        L.marker(center, {
-                            icon: L.divIcon({
-                                className: 'barangay-label',
-                                html: `<div style="background: rgba(10, 47, 77, 0.85); color: white; padding: 5px 14px; border-radius: 25px; font-size: 13px; font-weight: 600; border: 1px solid #c9a959; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">${barangayName}</div>`,
-                                iconSize: [160, 35],
-                                iconAnchor: [80, 18]
-                            })
-                        }).addTo(map);
-                        
-                        barangayPolygon.bindPopup(`
-                            <strong>${barangayName}</strong><br>
-                            Manolo Fortich, Bukidnon<br>
-                            Total Profiles: <?php echo $stats['total']; ?><br>
-                            Arrest Records: <?php echo $stats['arrested_count']; ?>
-                        `);
+    const topoLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+        attribution: 'Map data: &copy; OpenStreetMap contributors, SRTM | Map style: &copy; OpenTopoMap (CC-BY-SA)',
+        maxZoom: 17
+    });
+
+    // Initialize the map
+    const map = L.map('barangayMap').setView(coordinates, 14);
+    let currentLayer = streetLayer;
+    currentLayer.addTo(map);
+
+    // Try to fetch barangay boundary from OpenStreetMap
+    let barangayPolygon = null;
+    const searchQuery = `${barangayName}, Manolo Fortich, Bukidnon, Philippines`;
+    
+    fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&format=json&polygon_geojson=1&limit=1`)
+        .then(response => response.json())
+        .then(data => {
+            if (data && data.length > 0 && data[0].geojson) {
+                const geojson = data[0].geojson;
+                if (geojson.coordinates) {
+                    let coords = geojson.coordinates;
+                    if (geojson.type === 'Polygon') {
+                        coords = coords[0].map(coord => [coord[1], coord[0]]);
+                    } else if (geojson.type === 'MultiPolygon') {
+                        coords = coords[0][0].map(coord => [coord[1], coord[0]]);
                     }
-                } else {
-                    L.circle(coordinates, {
+                    
+                    barangayPolygon = L.polygon(coords, {
                         color: '#c9a959',
                         fillColor: '#0a2f4d',
-                        fillOpacity: 0.2,
-                        radius: 1500,
-                        weight: 2
+                        fillOpacity: 0.25,
+                        weight: 3,
+                        opacity: 0.8
                     }).addTo(map);
                     
-                    L.marker(coordinates).addTo(map).bindPopup(`
+                    map.fitBounds(barangayPolygon.getBounds());
+                    
+                    const center = barangayPolygon.getBounds().getCenter();
+                    L.marker(center, {
+                        icon: L.divIcon({
+                            className: 'barangay-label',
+                            html: `<div style="background: rgba(10, 47, 77, 0.85); color: white; padding: 5px 14px; border-radius: 25px; font-size: 13px; font-weight: 600; border: 1px solid #c9a959; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">${barangayName}</div>`,
+                            iconSize: [160, 35],
+                            iconAnchor: [80, 18]
+                        })
+                    }).addTo(map);
+                    
+                    barangayPolygon.bindPopup(`
                         <strong>${barangayName}</strong><br>
                         Manolo Fortich, Bukidnon<br>
                         Total Profiles: <?php echo $stats['total']; ?><br>
                         Arrest Records: <?php echo $stats['arrested_count']; ?>
-                    `).openPopup();
+                    `);
                 }
-            })
-            .catch(error => {
-                console.log('Error fetching boundary:', error);
+            } else {
                 L.circle(coordinates, {
                     color: '#c9a959',
                     fillColor: '#0a2f4d',
@@ -649,74 +772,92 @@ $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
                     Total Profiles: <?php echo $stats['total']; ?><br>
                     Arrest Records: <?php echo $stats['arrested_count']; ?>
                 `).openPopup();
-            });
-
-        // Add search control
-        const searchControl = L.Control.geocoder({
-            defaultMarkGeocode: false,
-            position: 'topleft',
-            placeholder: 'Search location...',
-            errorMessage: 'Location not found'
-        }).on('markgeocode', function(e) {
-            const bbox = e.geocode.bbox;
-            const center = e.geocode.center;
-            L.marker(center).addTo(map).bindPopup(e.geocode.name).openPopup();
-            map.fitBounds(bbox);
-        }).addTo(map);
-
-        // Create dropdown layer control
-        const layerControlDiv = document.createElement('div');
-        layerControlDiv.className = 'layer-control';
-        layerControlDiv.innerHTML = `
-            <label><i class="fas fa-layer-group"></i> Map Layer</label>
-            <select id="mapLayerSelect">
-                <option value="street" selected>🗺️ Street View</option>
-                <option value="satellite">🛰️ Satellite (See Houses)</option>
-                <option value="detailed">🏢 Detailed Street</option>
-                <option value="topo">⛰️ Topographic</option>
-            </select>
-        `;
-        document.querySelector('.map-container').appendChild(layerControlDiv);
-
-        // Layer switching functionality
-        const layers = {
-            'street': streetLayer,
-            'satellite': satelliteLayer,
-            'detailed': detailedStreetLayer,
-            'topo': topoLayer
-        };
-
-        const layerSelect = document.getElementById('mapLayerSelect');
-        layerSelect.addEventListener('change', function() {
-            const layerType = this.value;
-            map.removeLayer(currentLayer);
-            currentLayer = layers[layerType];
-            currentLayer.addTo(map);
+            }
+        })
+        .catch(error => {
+            console.log('Error fetching boundary:', error);
+            L.circle(coordinates, {
+                color: '#c9a959',
+                fillColor: '#0a2f4d',
+                fillOpacity: 0.2,
+                radius: 1500,
+                weight: 2
+            }).addTo(map);
             
-            // Show notification
-            const infoBar = document.querySelector('.info-bar');
-            const notification = document.createElement('div');
-            notification.className = 'info-item';
-            notification.style.background = '#0a2f4d';
-            notification.style.color = 'white';
-            notification.style.padding = '5px 12px';
-            notification.style.borderRadius = '20px';
-            
-            let layerName = '';
-            if (layerType === 'street') layerName = 'Street View';
-            else if (layerType === 'satellite') layerName = 'Satellite';
-            else if (layerType === 'detailed') layerName = 'Detailed Street';
-            else if (layerType === 'topo') layerName = 'Topographic';
-            
-            notification.innerHTML = `<i class="fas fa-check-circle"></i> Switched to ${layerName}`;
-            infoBar.appendChild(notification);
-            setTimeout(() => notification.remove(), 2000);
+            L.marker(coordinates).addTo(map).bindPopup(`
+                <strong>${barangayName}</strong><br>
+                Manolo Fortich, Bukidnon<br>
+                Total Profiles: <?php echo $stats['total']; ?><br>
+                Arrest Records: <?php echo $stats['arrested_count']; ?>
+            `).openPopup();
         });
 
-        // Add scale bar
-        L.control.scale().addTo(map);
-    </script>
-    
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    // Add search control
+    const searchControl = L.Control.geocoder({
+        defaultMarkGeocode: false,
+        position: 'topleft',
+        placeholder: 'Search location...',
+        errorMessage: 'Location not found'
+    }).on('markgeocode', function(e) {
+        const bbox = e.geocode.bbox;
+        const center = e.geocode.center;
+        L.marker(center).addTo(map).bindPopup(e.geocode.name).openPopup();
+        map.fitBounds(bbox);
+    }).addTo(map);
+
+    // Create dropdown layer control
+    const layerControlDiv = document.createElement('div');
+    layerControlDiv.className = 'layer-control';
+    layerControlDiv.innerHTML = `
+        <label><i class="fas fa-layer-group"></i> Map Layer</label>
+        <select id="mapLayerSelect">
+            <option value="street" selected>🗺️ Street View</option>
+            <option value="satellite">🛰️ Satellite (See Houses)</option>
+            <option value="detailed">🏢 Detailed Street</option>
+            <option value="topo">⛰️ Topographic</option>
+        </select>
+    `;
+    document.querySelector('.map-container').appendChild(layerControlDiv);
+
+    // Layer switching functionality
+    const layers = {
+        'street': streetLayer,
+        'satellite': satelliteLayer,
+        'detailed': detailedStreetLayer,
+        'topo': topoLayer
+    };
+
+    const layerSelect = document.getElementById('mapLayerSelect');
+    layerSelect.addEventListener('change', function() {
+        const layerType = this.value;
+        map.removeLayer(currentLayer);
+        currentLayer = layers[layerType];
+        currentLayer.addTo(map);
+        
+        // Show notification
+        const infoBar = document.querySelector('.info-bar');
+        const notification = document.createElement('div');
+        notification.className = 'info-item';
+        notification.style.background = '#0a2f4d';
+        notification.style.color = 'white';
+        notification.style.padding = '5px 12px';
+        notification.style.borderRadius = '20px';
+        
+        let layerName = '';
+        if (layerType === 'street') layerName = 'Street View';
+        else if (layerType === 'satellite') layerName = 'Satellite';
+        else if (layerType === 'detailed') layerName = 'Detailed Street';
+        else if (layerType === 'topo') layerName = 'Topographic';
+        
+        notification.innerHTML = `<i class="fas fa-check-circle"></i> Switched to ${layerName}`;
+        infoBar.appendChild(notification);
+        setTimeout(() => notification.remove(), 2000);
+    });
+
+    // Add scale bar
+    L.control.scale().addTo(map);
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
