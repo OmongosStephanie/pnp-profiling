@@ -14,68 +14,15 @@ $db = $database->getConnection();
 // Get selected year from URL (default to current year)
 $selectedYear = isset($_GET['year']) ? $_GET['year'] : date('Y');
 
-// Get all available years from database (from 2016 onwards)
-// Parse date from date_time_place_of_arrest field
-$yearsQuery = "SELECT DISTINCT 
-               YEAR(STR_TO_DATE(SUBSTRING_INDEX(date_time_place_of_arrest, 'T', 1), '%Y-%m-%d')) as year 
-               FROM biographical_profiles 
-               WHERE date_time_place_of_arrest IS NOT NULL 
-               AND date_time_place_of_arrest != ''
-               AND TRIM(date_time_place_of_arrest) != ''
-               AND STR_TO_DATE(SUBSTRING_INDEX(date_time_place_of_arrest, 'T', 1), '%Y-%m-%d') IS NOT NULL
-               AND YEAR(STR_TO_DATE(SUBSTRING_INDEX(date_time_place_of_arrest, 'T', 1), '%Y-%m-%d')) >= 2016
-               ORDER BY year DESC";
-$yearsStmt = $db->query($yearsQuery);
-$availableYears = $yearsStmt->fetchAll(PDO::FETCH_ASSOC);
+// Get all years from 2016 to current year for dropdown
+$allYears = range(2016, date('Y'));
 
-// If no years in database, show current year as option
-if (empty($availableYears)) {
-    $availableYears = [['year' => date('Y')]];
-}
+// ========== TOTAL PROFILES (Always total, not filtered by year) ==========
+$totalProfilesQuery = "SELECT COUNT(*) as total FROM biographical_profiles";
+$totalProfilesStmt = $db->query($totalProfilesQuery);
+$totalProfiles = $totalProfilesStmt->fetch(PDO::FETCH_ASSOC)['total'];
 
-// Get monthly arrest statistics for SELECTED year
-$monthlyQuery = "SELECT 
-                  MONTH(STR_TO_DATE(SUBSTRING_INDEX(date_time_place_of_arrest, 'T', 1), '%Y-%m-%d')) as month,
-                  MONTHNAME(STR_TO_DATE(SUBSTRING_INDEX(date_time_place_of_arrest, 'T', 1), '%Y-%m-%d')) as month_name,
-                  COUNT(*) as arrest_count
-                  FROM biographical_profiles 
-                  WHERE date_time_place_of_arrest IS NOT NULL 
-                  AND date_time_place_of_arrest != ''
-                  AND TRIM(date_time_place_of_arrest) != ''
-                  AND STR_TO_DATE(SUBSTRING_INDEX(date_time_place_of_arrest, 'T', 1), '%Y-%m-%d') IS NOT NULL
-                  AND YEAR(STR_TO_DATE(SUBSTRING_INDEX(date_time_place_of_arrest, 'T', 1), '%Y-%m-%d')) = :year
-                  GROUP BY MONTH(STR_TO_DATE(SUBSTRING_INDEX(date_time_place_of_arrest, 'T', 1), '%Y-%m-%d'))
-                  ORDER BY month";
-$monthlyStmt = $db->prepare($monthlyQuery);
-$monthlyStmt->bindParam(':year', $selectedYear);
-$monthlyStmt->execute();
-$monthlyArrests = $monthlyStmt->fetchAll(PDO::FETCH_ASSOC);
-
-// Create array of month counts for easy lookup
-$monthCounts = [];
-$monthNames = [];
-$monthLabels = [];
-foreach ($monthlyArrests as $m) {
-    $monthCounts[$m['month']] = $m['arrest_count'];
-    $monthNames[$m['month']] = $m['month_name'];
-    $monthLabels[] = $m['month_name'];
-}
-$monthValues = array_values($monthCounts);
-
-// Get barangay statistics - FIXED QUERY
-$barangayQuery = "SELECT 
-                   TRIM(SUBSTRING_INDEX(present_address, ',', 1)) as barangay,
-                   COUNT(*) as total,
-                   SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active,
-                   SUM(CASE WHEN status = 'delisted' THEN 1 ELSE 0 END) as delisted
-                   FROM biographical_profiles 
-                   WHERE present_address IS NOT NULL AND present_address != ''
-                   GROUP BY TRIM(SUBSTRING_INDEX(present_address, ',', 1))
-                   ORDER BY total DESC";
-$barangayStmt = $db->query($barangayQuery);
-$barangayReports = $barangayStmt->fetchAll(PDO::FETCH_ASSOC);
-
-// Get drug types statistics
+// ========== TOTAL DRUG MENTIONS (Always total, not filtered by year) ==========
 $drugQuery = "SELECT drugs_involved, other_drugs_pushed, drugs_pushed FROM biographical_profiles";
 $drugStmt = $db->query($drugQuery);
 $allDrugs = $drugStmt->fetchAll(PDO::FETCH_ASSOC);
@@ -130,6 +77,56 @@ $drugCategories = array_filter($drugCategories, function($count) {
 // Sort by count (highest first)
 arsort($drugCategories);
 
+// Calculate total drug mentions
+$totalDrugMentions = array_sum($drugCategories);
+
+// ========== TOTAL ARRESTS (Filtered by selected year) ==========
+// Get monthly arrest statistics for SELECTED year
+$monthlyQuery = "SELECT 
+                  MONTH(STR_TO_DATE(SUBSTRING_INDEX(date_time_place_of_arrest, 'T', 1), '%Y-%m-%d')) as month,
+                  MONTHNAME(STR_TO_DATE(SUBSTRING_INDEX(date_time_place_of_arrest, 'T', 1), '%Y-%m-%d')) as month_name,
+                  COUNT(*) as arrest_count
+                  FROM biographical_profiles 
+                  WHERE date_time_place_of_arrest IS NOT NULL 
+                  AND date_time_place_of_arrest != ''
+                  AND TRIM(date_time_place_of_arrest) != ''
+                  AND STR_TO_DATE(SUBSTRING_INDEX(date_time_place_of_arrest, 'T', 1), '%Y-%m-%d') IS NOT NULL
+                  AND YEAR(STR_TO_DATE(SUBSTRING_INDEX(date_time_place_of_arrest, 'T', 1), '%Y-%m-%d')) = :year
+                  GROUP BY MONTH(STR_TO_DATE(SUBSTRING_INDEX(date_time_place_of_arrest, 'T', 1), '%Y-%m-%d'))
+                  ORDER BY month";
+$monthlyStmt = $db->prepare($monthlyQuery);
+$monthlyStmt->bindParam(':year', $selectedYear);
+$monthlyStmt->execute();
+$monthlyArrests = $monthlyStmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Create array of month counts for easy lookup
+$monthCounts = [];
+$monthNames = [];
+$monthLabels = [];
+foreach ($monthlyArrests as $m) {
+    $monthCounts[$m['month']] = $m['arrest_count'];
+    $monthNames[$m['month']] = $m['month_name'];
+    $monthLabels[] = $m['month_name'];
+}
+$monthValues = array_values($monthCounts);
+
+// Get total arrests for selected year
+$totalArrestsForYear = array_sum($monthValues);
+
+// ========== OTHER STATISTICS (Not filtered by year - always total) ==========
+// Get barangay statistics
+$barangayQuery = "SELECT 
+                   TRIM(SUBSTRING_INDEX(present_address, ',', 1)) as barangay,
+                   COUNT(*) as total,
+                   SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active,
+                   SUM(CASE WHEN status = 'delisted' THEN 1 ELSE 0 END) as delisted
+                   FROM biographical_profiles 
+                   WHERE present_address IS NOT NULL AND present_address != ''
+                   GROUP BY TRIM(SUBSTRING_INDEX(present_address, ',', 1))
+                   ORDER BY total DESC";
+$barangayStmt = $db->query($barangayQuery);
+$barangayReports = $barangayStmt->fetchAll(PDO::FETCH_ASSOC);
+
 // Get age demographics
 $ageQuery = "SELECT 
               CASE 
@@ -170,19 +167,6 @@ if ($_SESSION['role'] == 'admin') {
     $userStmt = $db->query($userQuery);
     $userActivity = $userStmt->fetchAll(PDO::FETCH_ASSOC);
 }
-
-// Calculate total drug mentions
-$totalDrugMentions = array_sum($drugCategories);
-
-// Calculate total profiles
-$totalProfilesQuery = "SELECT COUNT(*) as total FROM biographical_profiles";
-$totalProfilesStmt = $db->query($totalProfilesQuery);
-$totalProfiles = $totalProfilesStmt->fetch(PDO::FETCH_ASSOC)['total'];
-
-// Calculate active profiles
-$activeProfilesQuery = "SELECT COUNT(*) as active FROM biographical_profiles WHERE status = 'active'";
-$activeProfilesStmt = $db->query($activeProfilesQuery);
-$activeProfiles = $activeProfilesStmt->fetch(PDO::FETCH_ASSOC)['active'];
 
 // Get current date for report
 $currentDate = date('F d, Y');
@@ -477,6 +461,12 @@ $hasArrests = count($monthlyArrests) > 0;
             color: #0a2f4d;
         }
 
+        .stat-note {
+            font-size: 11px;
+            color: #94a3b8;
+            margin-top: 8px;
+        }
+
         .year-nav {
             background: white;
             border-radius: 12px;
@@ -729,10 +719,6 @@ $hasArrests = count($monthlyArrests) > 0;
                 print-color-adjust: exact !important;
             }
 
-            .report-header-print {
-                display: block !important;
-            }
-
             .stats-cards {
                 display: grid;
             }
@@ -876,38 +862,42 @@ $hasArrests = count($monthlyArrests) > 0;
                     <i class="fas fa-users"></i>
                     <h3>Total Profiles</h3>
                     <div class="stat-number"><?php echo number_format($totalProfiles); ?></div>
+                    <div class="stat-note">All time total</div>
                 </div>
                 <div class="stat-card">
                     <i class="fas fa-calendar-alt"></i>
                     <h3>Total Arrests (<?php echo $selectedYear; ?>)</h3>
-                    <div class="stat-number"><?php echo number_format(array_sum($monthValues)); ?></div>
+                    <div class="stat-number"><?php echo number_format($totalArrestsForYear); ?></div>
+                    <div class="stat-note">For the year <?php echo $selectedYear; ?></div>
                 </div>
                 <div class="stat-card">
                     <i class="fas fa-capsules"></i>
                     <h3>Total Drug Mentions</h3>
                     <div class="stat-number"><?php echo number_format($totalDrugMentions); ?></div>
+                    <div class="stat-note">All time total</div>
                 </div>
             </div>
 
-            <!-- Year Navigation - Dropdown Select -->
+            <!-- Year Navigation - Dropdown Select (2016 to Current Year) -->
             <div class="year-nav no-print">
                 <div class="year-nav-title">
                     <i class="fas fa-calendar"></i>
-                    <span>Select Year:</span>
+                    <span>Select Year for Arrest Statistics:</span>
                 </div>
                 <div class="year-dropdown">
-                    <select onchange="window.location.href=this.value;" class="year-select">
-                        <?php 
-                        $years = range(2016, 2026);
-                        foreach ($years as $year): 
-                            $selected = ($selectedYear == $year) ? 'selected' : '';
-                        ?>
-                            <option value="?year=<?php echo $year; ?>" <?php echo $selected; ?>>
+                    <select onchange="window.location.href='?year='+this.value" class="year-select">
+                        <?php foreach ($allYears as $year): ?>
+                            <option value="<?php echo $year; ?>" <?php echo ($selectedYear == $year) ? 'selected' : ''; ?>>
                                 <?php echo $year; ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
                 </div>
+                <?php if ($totalArrestsForYear > 0): ?>
+                <div style="margin-left: auto; font-size: 13px; color: #0a2f4d;">
+                    <i class="fas fa-chart-line"></i> Total Arrests for <?php echo $selectedYear; ?>: <strong><?php echo $totalArrestsForYear; ?></strong>
+                </div>
+                <?php endif; ?>
             </div>
             
             <div class="reports-grid">
@@ -973,20 +963,20 @@ $hasArrests = count($monthlyArrests) > 0;
                             <tr>
                                 <td><?php echo $monthName; ?></td>
                                 <td><span class="badge-count"><?php echo $count; ?></span></td>
-                                <td><?php echo $percentage; ?>%</td>
+                                <td><?php echo $percentage; ?>%</span></td>
                             </tr>
                             <?php endfor; ?>
                             <?php if ($totalArrestsForYear > 0): ?>
                             <tr style="background: #f8fafc; font-weight: 600;">
                                 <td><strong>TOTAL</strong></td>
                                 <td><span class="badge-count" style="background: #c9a959;"><?php echo $totalArrestsForYear; ?></span></td>
-                                <td>100%</td>
+                                <td>100%</span></td>
                             </tr>
                             <?php else: ?>
                             <tr>
                                 <td colspan="3" style="text-align: center; color: #94a3b8; padding: 20px;">
                                     No arrest records for this year
-                                </td>
+                                 </span>
                             </tr>
                             <?php endif; ?>
                         </tbody>
@@ -1000,7 +990,7 @@ $hasArrests = count($monthlyArrests) > 0;
                         <h3>Drug Types Distribution</h3>
                     </div>
                     <div class="total-mentions">
-                        <i class="fas fa-chart-simple"></i> Total Drug Mentions: <strong><?php echo $totalDrugMentions; ?></strong>
+                        <i class="fas fa-chart-simple"></i> Total Drug Mentions (All Time): <strong><?php echo $totalDrugMentions; ?></strong>
                     </div>
                     <div class="chart-container">
                         <canvas id="drugChart"></canvas>
@@ -1031,10 +1021,10 @@ $hasArrests = count($monthlyArrests) > 0;
                                     <?php else: ?>
                                         <span class="drug-rank"><?php echo $rank; ?></span>
                                     <?php endif; ?>
-                                </td>
+                                 </span>
                                 <td><strong><?php echo $drug; ?></strong></td>
-                                <td><span class="badge-count"><?php echo $count; ?></span></td>
-                                <td><?php echo $percentage; ?>%</td>
+                                <td><span class="badge-count"><?php echo $count; ?></span></span>
+                                <td><?php echo $percentage; ?>%</span></td>
                             </tr>
                             <?php 
                             $rank++;
@@ -1055,11 +1045,12 @@ $hasArrests = count($monthlyArrests) > 0;
                     </div>
                     <table class="stats-table">
                         <thead>
-                            <tr>
+                             <tr>
                                 <th>Age Group</th>
                                 <th>Count</th>
                                 <th>Percentage</th>
-                            </thead>
+                             </tr>
+                        </thead>
                         <tbody>
                             <?php 
                             $totalAgeCount = array_sum(array_column($ageGroups, 'count'));
@@ -1069,7 +1060,7 @@ $hasArrests = count($monthlyArrests) > 0;
                              <tr>
                                 <td><?php echo htmlspecialchars($group['age_group']); ?></td>
                                 <td><span class="badge-count"><?php echo $group['count']; ?></span></td>
-                                <td><?php echo $percentage; ?>%</td>
+                                <td><?php echo $percentage; ?>%</span></td>
                              </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -1102,7 +1093,7 @@ $hasArrests = count($monthlyArrests) > 0;
                              <tr>
                                 <td><?php echo htmlspecialchars($sex['sex']); ?></td>
                                 <td><span class="badge-count"><?php echo $sex['count']; ?></span></td>
-                                <td><?php echo $percentage; ?>%</td>
+                                <td><?php echo $percentage; ?>%</span></td>
                              </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -1128,12 +1119,12 @@ $hasArrests = count($monthlyArrests) > 0;
                         <?php foreach ($userActivity as $user): ?>
                          <tr>
                             <td><?php echo htmlspecialchars($user['full_name']); ?></td>
-                            <td><?php echo htmlspecialchars($user['rank']); ?></td>
-                            <td><span class="badge-count"><?php echo $user['profiles_created']; ?></span></td>
+                            <td><?php echo htmlspecialchars($user['rank']); ?></span></td>
+                            <td><span class="badge-count"><?php echo $user['profiles_created']; ?></span></span></td>
                          </tr>
                         <?php endforeach; ?>
                     </tbody>
-                 </table>
+                  </table>
             </div>
             <?php endif; ?>
 
